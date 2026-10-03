@@ -1,0 +1,17 @@
+# macOS and editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Never commit secrets or local settings. Each app has its own .env.example to copy from.
+.env
+.env.*
+!.env.example
+
+# Logs and temporary files
+*.log
+*.tar.gz
+
+# Internal project notes: names, emails and business terms. Remove this line to track it.
+context-handoff.md
