@@ -65,6 +65,16 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Every request to and from Hubtel, payments and SMS, in one file: storage/logs/hubtel-YYYY-MM-DD.log.
+        // When a payment goes wrong, this is where the answer is. Secrets are masked before they are logged.
+        'hubtel' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/hubtel.log'),
+            'level' => 'debug',
+            'days' => env('LOG_HUBTEL_DAYS', 30),
+            'replace_placeholders' => true,
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),

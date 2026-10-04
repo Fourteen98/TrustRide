@@ -36,7 +36,7 @@ function Content({ home, reload }: { home: HomeData; reload: () => void }) {
   const { can } = useAuth();
   const action = useAction();
 
-  const { application, seats, subscription, renewal } = home;
+  const { application, seats, subscription, renewal, purchase } = home;
   const hasSeat = seats.length > 0;
   const waiting = application?.status === 'pending';
   const canApply = !hasSeat && !waiting && can('riders.profile.manage');
@@ -89,10 +89,24 @@ function Content({ home, reload }: { home: HomeData; reload: () => void }) {
         <SeatCard key={seat.id} seat={seat} />
       ))}
 
-      {hasSeat && !subscription ? (
+      {purchase && purchase.status !== 'failed' ? (
+        <Card title={purchase.status === 'pending' ? 'Payment waiting' : 'We got your payment'}>
+          <MutedText>{purchase.message}</MutedText>
+          <Button label="See payment" variant="plain" onPress={() => router.push('/plans')} />
+        </Card>
+      ) : null}
+
+      {hasSeat && !subscription && !purchase ? (
         <Card title="Your seat is reserved">
           <MutedText>Choose a plan and pay to make it yours. We hold it for a few days.</MutedText>
           {can('subscriptions.buy') ? <Button label="Choose a plan" onPress={() => router.push('/plans')} /> : null}
+        </Card>
+      ) : null}
+
+      {hasSeat && !subscription && purchase?.status === 'failed' ? (
+        <Card title="Your seat is reserved">
+          <MutedText>Your last payment did not go through. Pay to make the seat yours. We hold it for a few days.</MutedText>
+          {can('subscriptions.buy') ? <Button label="Try again" onPress={() => router.push('/plans')} /> : null}
         </Card>
       ) : null}
 

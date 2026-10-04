@@ -4,6 +4,7 @@ namespace App\Api\Rider;
 
 use App\Api\Rider\Resources\ApplicationResource;
 use App\Api\Rider\Resources\NoticeResource;
+use App\Api\Rider\Resources\PurchaseResource;
 use App\Api\Rider\Resources\SeatResource;
 use App\Api\Rider\Resources\SubscriptionResource;
 use Illuminate\Http\JsonResponse;
@@ -37,6 +38,8 @@ class HomeController
             'subscription' => isset($data['subscription']) ? new SubscriptionResource($data['subscription']) : null,
             /** A renewal already bought, which starts when the current one ends */
             'renewal' => isset($data['renewal']) ? new SubscriptionResource($data['renewal']) : null,
+            /** Her latest payment while it still matters: waiting, failed in the last day, or paid but stuck */
+            'purchase' => isset($data['purchase']) ? new PurchaseResource($data['purchase']) : null,
             /** Days she has already said she won't ride */
             'notices' => NoticeResource::collection($data['notices'] ?? []),
             /**

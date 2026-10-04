@@ -26,7 +26,7 @@ class SubscriptionResource extends JsonResource
             /** Days added because she told us in time she wouldn't ride */
             'credited_days' => $this->credited_days,
             /** A sentence describing what happens to a day she doesn't use */
-            'no_show_rule' => $this->no_show_policy->label(),
+            'no_show_rule' => $this->no_show_policy->forRider(),
         ];
     }
 }

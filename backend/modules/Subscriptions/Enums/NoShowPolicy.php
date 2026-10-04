@@ -17,4 +17,14 @@ enum NoShowPolicy: string
             self::CreditAlways => 'Always credited',
         };
     }
+
+    /** The same rule, said to the rider herself. */
+    public function forRider(): string
+    {
+        return match ($this) {
+            self::LoseDay => 'You lose the day',
+            self::CreditWithNotice => 'The day is added back only if you tell us in time',
+            self::CreditAlways => 'The day is always added back',
+        };
+    }
 }

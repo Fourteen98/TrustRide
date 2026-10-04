@@ -5,6 +5,7 @@ use App\Api\Rider\ApplicationController;
 use App\Api\Rider\DataDeletionController;
 use App\Api\Rider\HomeController;
 use App\Api\Rider\PlanController;
+use App\Api\Rider\PurchaseController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,7 +24,11 @@ Route::prefix('rider/v1')->middleware('auth:app')->group(function () {
         Route::delete('application', [ApplicationController::class, 'destroy']);
     });
 
-    Route::get('plans', [PlanController::class, 'index'])->middleware('permission:subscriptions.buy,app');
+    Route::middleware('permission:subscriptions.buy,app')->group(function () {
+        Route::get('plans', [PlanController::class, 'index']);
+        Route::post('purchase', [PurchaseController::class, 'store'])->middleware('throttle:10,1');
+        Route::get('purchase', [PurchaseController::class, 'show']);
+    });
 
     Route::middleware('permission:subscriptions.absence.give,app')->group(function () {
         Route::get('absences/preview', [AbsenceController::class, 'preview']);

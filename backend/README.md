@@ -140,7 +140,7 @@ GET  /api/auth/me        Authorization: Bearer <token>                -> { accou
 POST /api/auth/logout
 ```
 
-Until the Hubtel sender is written, the code is written to `storage/logs/laravel.log`.
+With `MESSAGING_SMS_DRIVER=log` (the default) the code is written to `storage/logs/laravel.log`. With `hubtel` it is sent as a real SMS.
 
 A phone number nobody has seen becomes a new account with the rider role. Staff add drivers and mates by phone number under Access, Mobile accounts.
 
@@ -160,7 +160,7 @@ POST   /api/rider/v1/data-deletion        ask for her data to be deleted
 DELETE /api/rider/v1/data-deletion        take that back
 ```
 
-Set `SUPPORT_PHONE` and `SUPPORT_WHATSAPP` in `.env`. The app shows them on the Plans screen, which is how a rider pays until Hubtel is in.
+Set `SUPPORT_PHONE` and `SUPPORT_WHATSAPP` in `.env`. The app shows them when a payment needs a person to sort it out.
 
 ### Deleting a rider's data
 
@@ -193,6 +193,53 @@ To connect a real provider:
 To message every rider on a run, use "Message riders" under Runs and capacity. That fires `run.announcement`, which has its own rule.
 
 A message is only created once per event, rule and person, so a listener that runs twice never sends twice. The queue worker must be running for anything to go out.
+
+## Payments
+
+A rider pays for a plan in the app with mobile money. Fares never come through here.
+
+```
+app            POST /api/rider/v1/purchase {plan_id, network, phone?}
+Subscriptions  StartPlanPurchase: checks she can be activated, creates a plan_purchases row
+Payments       StartPayment: creates a payments row with our reference (TR-...), asks the gateway to prompt her phone
+               ... she approves with her PIN ...
+Hubtel         POST /api/webhooks/hubtel/payment          (or payments:reconcile asks Hubtel, if no callback came)
+Payments       ApplyOutcome: marks the payment paid or failed, once, and fires payment.succeeded or payment.failed
+Subscriptions  SettlePlanPurchase: runs ActivateSubscription, the same Action an operator uses
+Messaging      sends the receipt (subscription.activated) or "payment failed" (purchase.failed)
+app            GET /api/rider/v1/purchase every few seconds until the status is no longer "pending"
+```
+
+Payments knows nothing about riders or plans. It charges "a thing with a type and an id" and reports back with an event. Another module that needs money calls `StartPayment` with its own type and listens for the two events.
+
+**Gateways.** `PAYMENTS_DRIVER` in `.env` picks one.
+
+| Driver | What it does |
+| --- | --- |
+| `fake` | The default. No money moves. A payment succeeds by itself after `PAYMENTS_FAKE_SETTLE_SECONDS`. A wallet number ending `0000` fails instead. The queue worker must be running. |
+| `hubtel` | Hubtel Direct Receive Money: a real prompt on her phone. Needs `HUBTEL_API_USERNAME`, `HUBTEL_API_KEY`, `HUBTEL_MERCHANT_ACCOUNT_NUMBER`. |
+
+**Before the first real payment:**
+
+1. Put the three Hubtel values in `.env` on the server. Never in git.
+2. The callback URL must be reachable from the internet. It is `APP_URL/api/webhooks/hubtel/payment` unless `HUBTEL_CALLBACK_URL` says otherwise.
+3. Ask Hubtel to whitelist the server's IP for Receive Money and for the Transaction Status Check API. Without it Hubtel answers 403. This is why `hubtel` can't be used from a laptop.
+4. Run `php artisan schedule:work` (or cron) so `payments:reconcile` runs every five minutes.
+5. Make one small payment and read `storage/logs/hubtel-*.log`. It records every request and reply in full, with the keys masked. The request shape in `HubtelGateway::charge` follows Hubtel's published format but has not been run against Hubtel from this codebase yet, so check the first one.
+
+**Rules the code keeps.**
+
+- Hubtel does not sign callbacks. The only thing trusted in one is our own reference, which is long, random and never shown to the rider.
+- A payment becomes paid or failed in one place, `ApplyOutcome`, under a row lock. A second callback, or a callback and a status check arriving together, change nothing.
+- "Hubtel couldn't answer" never fails a payment. Only a clear "not paid" after `PAYMENTS_FAIL_AFTER_MINUTES` does.
+- Money that arrives after a payment was marked failed still counts, and still activates.
+- If she paid but can't be activated (her seat was released while she was paying), the purchase is flagged **Paid, needs attention** under Subscriptions > Purchases, with a count on the menu. An operator fixes the cause and presses "Try to activate again".
+- The webhook always answers 200, so Hubtel doesn't retry forever. Anything missed is found by the status check.
+- When a rider's data is erased, the payment rows stay for the accounts, without the phone number.
+
+**In the console.** Subscriptions > Payments lists every charge. "Check status" asks the gateway now. "Settle by hand" needs the `payments.resolve` permission, which operators don't get by default, because it gives a rider a subscription without the gateway saying she paid.
+
+**Real SMS.** Set `MESSAGING_SMS_DRIVER=hubtel` and the `HUBTEL_SMS_` values. These are the SMS API keys, a different pair from the payment keys. Login codes and every message rule then go out as real texts.
 
 ## What the console does today
 
@@ -251,7 +298,7 @@ An action or checklist used on two screens goes in a class of its own, like `Mod
 ## Not done yet
 
 - A real SMS, WhatsApp or push provider. Messaging works end to end with the `log` driver.
-- Payments. An operator activates subscriptions by hand until Hubtel is wired in (Phase 3). The app tells the rider to pay TrustRide directly.
+- Real money. Payments run on the fake gateway until Hubtel credentials, a public callback URL and a whitelisted server IP exist. See "Payments" above.
 - Push notifications in the app, and letting a rider choose her channel (task R5).
 - Automatic deletion of riders who have gone quiet (task H1). Deletion on request works.
 - Trips, live location and the driver and mate screens (Phase 7).

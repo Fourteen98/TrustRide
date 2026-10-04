@@ -9,6 +9,10 @@ export type Seat = components['schemas']['SeatResource'];
 export type Subscription = components['schemas']['SubscriptionResource'];
 export type Application = components['schemas']['ApplicationResource'];
 export type Plan = components['schemas']['PlanResource'];
+export type Purchase = components['schemas']['PurchaseResource'];
+export type PlanChoices = paths['/rider/v1/plans']['get']['responses'][200]['content']['application/json'];
+export type Network = PlanChoices['networks'][number];
+export type NewPurchase = NonNullable<paths['/rider/v1/purchase']['post']['requestBody']>['content']['application/json'];
 
 export type NewApplication = {
   name: string;
@@ -24,7 +28,11 @@ export const riderApi = {
   routes: async () => (await call(() => api.GET('/rider/v1/routes'))).routes,
   apply: (body: NewApplication) => call(() => api.POST('/rider/v1/application', { body })),
   withdraw: () => call(() => api.DELETE('/rider/v1/application')),
-  plans: async () => (await call(() => api.GET('/rider/v1/plans'))).plans,
+  plans: () => call(() => api.GET('/rider/v1/plans')),
+  /** Sends the mobile money prompt. The purchase comes back as "pending". */
+  pay: async (body: NewPurchase) => (await call(() => api.POST('/rider/v1/purchase', { body }))).purchase,
+  /** Her latest payment, for asking again while it is pending. */
+  purchase: async () => (await call(() => api.GET('/rider/v1/purchase'))).purchase,
   previewNotice: (date: string) => call(() => api.GET('/rider/v1/absences/preview', { params: { query: { date } } })),
   giveNotice: (date: string) => call(() => api.POST('/rider/v1/absences', { body: { date } })),
   requestDeletion: () => call(() => api.POST('/rider/v1/data-deletion')),

@@ -11,12 +11,13 @@ class PlanController
     /**
      * Plans on sale.
      *
-     * Paying in the app comes with Hubtel. Until then the app shows these and tells her how to pay.
+     * Also lists the mobile money networks she can pay from, for `POST purchase`.
      */
     public function index(): JsonResponse
     {
         return response()->json([
             'plans' => PlanResource::collection(Plan::query()->where('is_active', true)->orderBy('duration_days')->get()),
+            'networks' => collect(config('payments.networks'))->map(fn (array $network, string $key) => ['key' => $key, 'label' => $network['label']])->values()->all(),
         ]);
     }
 }

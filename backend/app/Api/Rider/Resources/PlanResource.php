@@ -21,7 +21,7 @@ class PlanResource extends JsonResource
             'duration_days' => $this->duration_days,
             /** 1 for one trip a day, 2 for there and back */
             'trips_per_day' => $this->trips_per_day,
-            'no_show_rule' => $this->no_show_policy->label(),
+            'no_show_rule' => $this->no_show_policy->forRider(),
         ];
     }
 }

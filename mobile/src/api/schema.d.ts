@@ -195,11 +195,37 @@ export interface paths {
         };
         /**
          * Plans on sale
-         * @description Paying in the app comes with Hubtel. Until then the app shows these and tells her how to pay.
+         * @description Also lists the mobile money networks she can pay from, for `POST purchase`.
          */
         get: operations["plan.index"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rider/v1/purchase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Her latest payment
+         * @description Ask this every few seconds while the status is `pending`. Null if she has never tried to pay.
+         */
+        get: operations["purchase.show"];
+        put?: never;
+        /**
+         * Pay for a plan
+         * @description Sends a mobile money prompt to her phone. The reply only says the prompt was sent, never that she paid.
+         *     Then ask `GET purchase` every few seconds until the status is no longer `pending`.
+         *     She needs a reserved seat first. A renewal starts the day after her current subscription ends.
+         */
+        post: operations["purchase.store"];
         delete?: never;
         options?: never;
         head?: never;
@@ -268,6 +294,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/webhooks/hubtel/payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hubtel payment callback
+         * @description Hubtel calls this when a rider answers a mobile money prompt. It is not for the app.
+         *     It always answers 200, even if something goes wrong on our side, so Hubtel does not keep
+         *     retrying. Anything missed is picked up by the status check (`payments:reconcile`).
+         */
+        post: operations["hubtel.payment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -329,7 +377,24 @@ export interface components {
             /** @description 1 for one trip a day, 2 for there and back */
             trips_per_day: number;
             /** @enum {string} */
-            no_show_rule: "She loses the day" | "Credited only if she told us in time" | "Always credited";
+            no_show_rule: "You lose the day" | "The day is added back only if you tell us in time" | "The day is always added back";
+        };
+        /** PurchaseResource */
+        PurchaseResource: {
+            /**
+             * @description pending: she has been prompted, keep asking. activated: paid and her subscription is running.
+             *     failed: not paid, she can try again. needs_attention: paid, but we must fix something. Show support.
+             * @enum {string}
+             */
+            status: "pending" | "activated" | "failed" | "needs_attention";
+            plan: string;
+            /** @description e.g. "GHS 60" */
+            amount_label: string;
+            /** @description e.g. "MTN MoMo" */
+            network: string;
+            /** @description A sentence for her, saying where things stand */
+            message: string;
+            started_at: string;
         };
         /** SeatResource */
         SeatResource: {
@@ -368,7 +433,7 @@ export interface components {
              * @description A sentence describing what happens to a day she doesn't use
              * @enum {string}
              */
-            no_show_rule: "She loses the day" | "Credited only if she told us in time" | "Always credited";
+            no_show_rule: "You lose the day" | "The day is added back only if you tell us in time" | "The day is always added back";
         };
     };
     responses: {
@@ -535,6 +600,7 @@ export interface operations {
                         seats: components["schemas"]["SeatResource"][];
                         subscription: components["schemas"]["SubscriptionResource"] | null;
                         renewal: components["schemas"]["SubscriptionResource"] | null;
+                        purchase: components["schemas"]["PurchaseResource"] | null;
                         /** @description Days she has already said she won't ride */
                         notices: components["schemas"]["NoticeResource"][];
                         /** @description The next days she can still say she won't ride, as "2026-10-07" */
@@ -662,10 +728,72 @@ export interface operations {
                 content: {
                     "application/json": {
                         plans: components["schemas"]["PlanResource"][];
+                        networks: {
+                            key: string;
+                            label: string;
+                        }[];
                     };
                 };
             };
             401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "purchase.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        purchase: components["schemas"]["PurchaseResource"] | null;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "purchase.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: number;
+                    /**
+                     * @description One of the keys from `GET plans` under `networks`
+                     * @enum {string}
+                     */
+                    network: "mtn" | "telecel" | "airteltigo";
+                    /** @description The wallet to charge. Leave out to use the number she logs in with. */
+                    phone?: string | null;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        purchase: components["schemas"]["PurchaseResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
         };
     };
     "absence.preview": {
@@ -775,6 +903,27 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "hubtel.payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        received: boolean;
+                    };
+                };
+            };
         };
     };
 }

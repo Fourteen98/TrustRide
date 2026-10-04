@@ -20,7 +20,7 @@ class ManageSubscriptions extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            // Until Hubtel is wired in, an operator activates by hand. A payment will run the same Action.
+            // For a rider who paid outside the app, in cash or by transfer. A payment in the app runs the same Action.
             Action::make('activate')
                 ->label('Activate a subscription')
                 ->visible(fn () => Guarded::can('subscriptions.activate'))

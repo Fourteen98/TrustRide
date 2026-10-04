@@ -1,52 +1,50 @@
-import { Linking, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 
-import { Button } from '@/components/button';
-import { Card } from '@/components/card';
 import { Loadable } from '@/components/loadable';
-import { MutedText } from '@/components/muted-text';
 import { Notice } from '@/components/notice';
 import { Screen } from '@/components/screen';
-import { Spacing } from '@/constants/theme';
+import { useAuth } from '@/auth/auth-context';
 import { useLoader } from '@/hooks/use-loader';
-import { riderApi } from '@/rider/api';
+import { usePoll } from '@/hooks/use-poll';
+import { riderApi, type Purchase } from '@/rider/api';
+import { PayForm } from '@/rider/pay-form';
+import { PaymentProgress } from '@/rider/payment-progress';
 
 /**
- * Task R3, without the payment. She sees the plans and how to pay. Paying in the app comes with Hubtel.
- * Until then she pays TrustRide directly and an operator switches her subscription on.
+ * Task R3. She picks a plan and pays with mobile money. The server sends a prompt to her phone,
+ * and this screen asks every few seconds until the payment is settled one way or the other.
  */
 export default function PlansScreen() {
-  const state = useLoader(async () => {
-    const [plans, home] = await Promise.all([riderApi.plans(), riderApi.home()]);
+  const router = useRouter();
+  const { account } = useAuth();
+  // The payment this screen is following. Undefined until she pays, or until home says one is under way.
+  const [followed, setFollowed] = useState<Purchase | null | undefined>(undefined);
 
-    return { plans, support: home.support };
+  const state = useLoader(async () => {
+    const [choices, home] = await Promise.all([riderApi.plans(), riderApi.home()]);
+
+    return { ...choices, home };
   });
+
+  const purchase = followed === undefined ? (state.data?.home.purchase ?? null) : followed;
+
+  usePoll(async () => setFollowed(await riderApi.purchase()), purchase?.status === 'pending');
 
   return (
     <Screen edges={['bottom']}>
       <Loadable state={state}>
-        {({ plans, support: { phone, whatsapp } }) => (
-          <>
-            {plans.map((plan) => (
-              <Card key={plan.id} title={`${plan.name} · ${plan.price_label}`}>
-                {`${plan.duration_days} days. ${plan.trips_per_day === 1 ? 'One trip a day.' : 'There and back each day.'} If you don't ride: ${plan.no_show_rule.toLowerCase()}.`}
-              </Card>
-            ))}
-
-            <Card title="How to pay">
-              <MutedText>
-                Paying in the app is coming. For now, tell us which plan you want and pay TrustRide directly. We switch your seat on as soon
-                as we see it. This is for your subscription only. Your fare still goes to the mate.
-              </MutedText>
-              <View style={{ gap: Spacing.two }}>
-                {whatsapp ? (
-                  <Button label="Message us on WhatsApp" onPress={() => Linking.openURL(`https://wa.me/${whatsapp.replace(/\D+/g, '')}`)} />
-                ) : null}
-                {phone ? <Button label={`Call ${phone}`} variant="plain" onPress={() => Linking.openURL(`tel:${phone}`)} /> : null}
-                {!phone && !whatsapp ? <Notice tone="info" text="Ask the TrustRide team how to pay." /> : null}
-              </View>
-            </Card>
-          </>
-        )}
+        {({ plans, networks, home }) =>
+          purchase ? (
+            <PaymentProgress purchase={purchase} support={home.support} onDone={() => router.back()} onRetry={() => setFollowed(null)} />
+          ) : home.seats.length === 0 ? (
+            <Notice tone="info" text="Apply for a seat first. Once your seat is reserved you can pay for it here." />
+          ) : home.renewal ? (
+            <Notice tone="info" text="You have already paid for your next subscription." />
+          ) : (
+            <PayForm plans={plans} networks={networks} defaultPhone={account?.phone ?? ''} onStarted={setFollowed} />
+          )
+        }
       </Loadable>
     </Screen>
   );

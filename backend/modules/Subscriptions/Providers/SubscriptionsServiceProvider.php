@@ -6,10 +6,18 @@ use App\Support\ModuleServiceProvider;
 use App\Support\Permissions\PermissionGroupDefinition;
 use App\Support\Scope;
 use Illuminate\Console\Scheduling\Schedule;
+use Modules\Payments\Events\PaymentFailed;
+use Modules\Payments\Events\PaymentSucceeded;
 use Modules\Subscriptions\Console\DailyUpkeepCommand;
+use Modules\Subscriptions\Listeners\SettlePurchaseWhenPaymentSettles;
 
 class SubscriptionsServiceProvider extends ModuleServiceProvider
 {
+    protected array $listen = [
+        PaymentSucceeded::class => [SettlePurchaseWhenPaymentSettles::class],
+        PaymentFailed::class => [SettlePurchaseWhenPaymentSettles::class],
+    ];
+
     public function boot(): void
     {
         parent::boot();

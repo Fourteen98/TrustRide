@@ -3,6 +3,7 @@
 use App\Support\Recipient;
 use Filament\Facades\Filament;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Modules\Access\Models\Staff;
 use Modules\Messaging\Actions\ApplyRules;
@@ -248,4 +249,26 @@ it('shows an operator the delivery log but not rule editing', function () {
     $this->get('/admin/messages')->assertOk();
 
     Livewire::test(ManageMessageRules::class)->assertTableActionHidden('edit', MessageRule::first());
+});
+
+it('sends real SMS through Hubtel when the SMS driver is hubtel, and reports a refusal', function () {
+    app(ChannelManager::class)->use('sms', null);
+    $manager = new ChannelManager;
+    config([
+        'messaging.channels.sms.driver' => 'hubtel',
+        'messaging.hubtel_sms.client_id' => 'sms-id',
+        'messaging.hubtel_sms.client_secret' => 'sms-secret',
+        'messaging.hubtel_sms.sender_id' => 'TrustRide',
+    ]);
+    Http::fake(['sms.hubtel.com/*' => Http::sequence()
+        ->push(['messageId' => 'abc', 'status' => 0], 201)
+        ->push(['message' => 'Invalid sender'], 400)]);
+
+    $manager->channel('sms')->send('+233241234567', 'Hello Ama');
+
+    Http::assertSent(fn ($request) => $request->url() === 'https://sms.hubtel.com/v1/messages/send'
+        && $request['from'] === 'TrustRide' && $request['to'] === '233241234567' && $request['content'] === 'Hello Ama'
+        && $request->hasHeader('Authorization', 'Basic '.base64_encode('sms-id:sms-secret')));
+
+    expect(fn () => $manager->channel('sms')->send('+233241234567', 'Again'))->toThrow(RuntimeException::class, 'Invalid sender');
 });

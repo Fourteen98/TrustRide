@@ -5,9 +5,11 @@ namespace Modules\Subscriptions\Queries;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Modules\Riders\Models\Rider;
+use Modules\Subscriptions\Enums\PurchaseStatus;
 use Modules\Subscriptions\Enums\SeatStatus;
 use Modules\Subscriptions\Enums\SubscriptionStatus;
 use Modules\Subscriptions\Models\AbsenceNotice;
+use Modules\Subscriptions\Models\PlanPurchase;
 use Modules\Subscriptions\Models\Seat;
 use Modules\Subscriptions\Models\Subscription;
 
@@ -15,7 +17,7 @@ use Modules\Subscriptions\Models\Subscription;
 class RiderOverview
 {
     /**
-     * @return array{seats: Collection<int, Seat>, subscription: ?Subscription, renewal: ?Subscription, notices: Collection<int, AbsenceNotice>, ride_dates: list<string>}
+     * @return array{seats: Collection<int, Seat>, subscription: ?Subscription, renewal: ?Subscription, purchase: ?PlanPurchase, notices: Collection<int, AbsenceNotice>, ride_dates: list<string>}
      */
     public function handle(Rider $rider): array
     {
@@ -48,8 +50,25 @@ class RiderOverview
             'subscription' => $upcoming->first(),
             'renewal' => $upcoming->skip(1)->first(),
             'notices' => $notices,
+            'purchase' => $this->purchase($rider),
             'ride_dates' => $this->rideDates($seats, $upcoming, $notices, $today),
         ];
+    }
+
+    /**
+     * Her latest attempt to pay, while it still matters to her: waiting, paid but stuck,
+     * or failed in the last day. An old or finished one is not shown.
+     */
+    public function purchase(Rider $rider): ?PlanPurchase
+    {
+        $latest = PlanPurchase::query()->where('rider_id', $rider->id)->with('plan')->latest('id')->first();
+
+        return match (true) {
+            $latest === null => null,
+            in_array($latest->status, [PurchaseStatus::Pending, PurchaseStatus::NeedsAttention], true) => $latest,
+            $latest->status === PurchaseStatus::Failed && $latest->updated_at->gt(now()->subDay()) => $latest,
+            default => null,
+        };
     }
 
     /**

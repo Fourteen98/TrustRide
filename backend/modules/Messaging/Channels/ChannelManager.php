@@ -22,6 +22,9 @@ class ChannelManager
 
         return match ($driver) {
             'log' => new LogChannel(strtoupper($key === 'sms' ? 'SMS' : $key)),
+            'hubtel' => $key === 'sms'
+                ? app(HubtelSmsChannel::class)
+                : throw new InvalidArgumentException("The hubtel driver only sends SMS, not {$key}."),
             'null', null, '' => null,
             default => throw new InvalidArgumentException("Unknown messaging driver [{$driver}] for the {$key} channel."),
         };
