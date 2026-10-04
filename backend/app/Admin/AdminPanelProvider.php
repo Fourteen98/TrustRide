@@ -34,11 +34,15 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->brandName('TrustRide')
+            ->brandLogo(fn () => asset('images/logo-light.png'))
+            ->darkModeBrandLogo(fn () => asset('images/logo-dark.png'))
+            ->brandLogoHeight('2.25rem')
+            ->favicon(fn () => asset('favicon.png'))
             ->authGuard('platform')
             ->login()
             ->colors(['primary' => Color::Amber])
             // The order of the menu: what operators use most comes first.
-            ->navigationGroups(['Subscriptions', 'Riders', 'Drivers', 'Network', 'Access'])
+            ->navigationGroups(['Subscriptions', 'Riders', 'Drivers', 'Messaging', 'Network', 'Access'])
             ->pages([Dashboard::class])
             ->widgets([AccountWidget::class])
             ->middleware([
