@@ -171,6 +171,29 @@ Set `SUPPORT_PHONE` and `SUPPORT_WHATSAPP` in `.env`. The app shows them on the 
 
 Any new table that stores a rider's details must either hang off `riders` with a cascading foreign key, or listen for `App\Support\Contracts\ErasesPersonalData`.
 
+## Messaging
+
+Modules never send messages. They fire events, and Messaging decides who is told.
+
+1. A module fires an event, such as `subscription.activated`, with a payload and a list of recipients.
+2. Messaging logs it, then looks up the active rules for that event name.
+3. For each rule and each recipient the rule is for, it fills the rule's words from the payload and queues one message.
+4. Delivery tries the person's preferred channel first, then the others in `fallback_order`. Every try is written to the message.
+
+A rule is a row: event, audience, channel, words. Edit them under Messaging, Message rules. The form lists the placeholders the event carries, such as `{car_number}` and `{stop}`. Eight rules ship switched on. Review their wording before a real provider is connected, because from then on each one costs money.
+
+**Nothing is really sent yet.** The SMS channel uses the `log` driver, so messages land in `storage/logs/laravel.log`. WhatsApp and push are not set up, so delivery falls back to SMS. Login codes go through the same SMS channel.
+
+To connect a real provider:
+
+1. Write a class in `modules/Messaging/Channels` that implements `Channel`. `send()` returns when the provider accepts the message and throws when it doesn't.
+2. Add its name to the `match` in `ChannelManager::channel()`.
+3. Set `MESSAGING_SMS_DRIVER` in `.env` to that name.
+
+To message every rider on a run, use "Message riders" under Runs and capacity. That fires `run.announcement`, which has its own rule.
+
+A message is only created once per event, rule and person, so a listener that runs twice never sends twice. The queue worker must be running for anything to go out.
+
 ## What the console does today
 
 Log in at `/admin`. The menu follows your permissions.
@@ -182,11 +205,40 @@ Log in at `/admin`. The menu follows your permissions.
 5. **Subscriptions.** "Activate a subscription" for a rider who has paid. Renew, or record that she won't ride on a day.
 6. **Today's riders.** Each run going out on the chosen day, with its riders in stop order and who is away.
 7. **Monthly statements.** "Assess a month" on the driver opens his statement. Pay him outside the system, then mark it paid with the reference.
-8. **Deletion requests.** Riders who asked for their data to be deleted. Confirming can't be undone.
+8. **Messaging.** The delivery log shows what went to whom and what failed, with "Try again". Message rules decide who is told what. Events lists everything the modules reported.
+9. **Deletion requests.** Riders who asked for their data to be deleted. Confirming can't be undone.
 
 Money is stored in pesewas as whole numbers. `App\Support\Money` formats it, and `MoneyInput` is the form field.
 
 Dates with no time use the `App\Support\Casts\DateOnly` cast, so they store as `2026-10-05` on every database.
+
+## Building an admin screen from the shared pieces
+
+Everything in `app/Support/Filament` exists so screens look and behave the same. Use these before writing anything by hand.
+
+| Piece | Use it for |
+|---|---|
+| `GatedByPermission` | Who sees a screen and who can change things. Set `$viewPermission` and `$managePermission`. Override `isReadOnly()` on a list-only screen. |
+| `Guarded::calls(fn ...)` | What a button does. A refusal from a module shows as a red notice and the form stays open. |
+| `Guarded::can()` and `Guarded::staff()` | Hiding a button, and knowing who is logged in |
+| `Columns::status()` | A status as a coloured badge, from an enum or a string |
+| `Columns::money()` | A pesewas column shown as "GHS 60" |
+| `MoneyInput::make()` | A cedis field for a pesewas column |
+| `Options::enum()` | The choices for a select or filter from an enum |
+| `<x-admin.table>`, `<x-admin.row>` | A table on a page that is not a resource list |
+| `<x-admin.day-picker>` | A date field bound to a Livewire property |
+
+```php
+Columns::status('status', ['approved' => 'success', 'suspended' => 'danger', 'pending' => 'warning']),
+Columns::money('monthly_commission')->label('Commission'),
+
+Action::make('suspend')
+    ->visible(fn () => Guarded::can('drivers.manage'))
+    ->schema([Textarea::make('reason')->required()])
+    ->action(Guarded::calls(fn (Driver $record, array $data) => app(SuspendDriver::class)->handle($record, $data['reason']))),
+```
+
+An action or checklist used on two screens goes in a class of its own, like `Modules\Drivers\Filament\VettingActions`.
 
 ## Adding to a module
 
@@ -198,8 +250,9 @@ Dates with no time use the `App\Support\Casts\DateOnly` cast, so they store as `
 
 ## Not done yet
 
+- A real SMS, WhatsApp or push provider. Messaging works end to end with the `log` driver.
 - Payments. An operator activates subscriptions by hand until Hubtel is wired in (Phase 3). The app tells the rider to pay TrustRide directly.
-- Messaging logs every event but has no rules, templates or channels (tasks M2 to M4). No SMS is sent, including login codes.
+- Push notifications in the app, and letting a rider choose her channel (task R5).
 - Automatic deletion of riders who have gone quiet (task H1). Deletion on request works.
 - Trips, live location and the driver and mate screens (Phase 7).
 - Support queue and incidents (Phase 6).

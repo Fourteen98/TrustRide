@@ -4,9 +4,12 @@ namespace Modules\Messaging\Providers;
 
 use App\Support\Contracts\DomainEvent;
 use App\Support\Contracts\ErasesPersonalData;
+use App\Support\Contracts\SmsSender;
 use App\Support\ModuleServiceProvider;
 use App\Support\Permissions\PermissionGroupDefinition;
 use App\Support\Scope;
+use Modules\Messaging\Channels\ChannelManager;
+use Modules\Messaging\Channels\ChannelSmsSender;
 use Modules\Messaging\Listeners\RecordDomainEvent;
 use Modules\Messaging\Listeners\ScrubPersonalData;
 
@@ -17,6 +20,16 @@ class MessagingServiceProvider extends ModuleServiceProvider
         DomainEvent::class => [RecordDomainEvent::class],
         ErasesPersonalData::class => [ScrubPersonalData::class],
     ];
+
+    public function register(): void
+    {
+        parent::register();
+
+        $this->app->singleton(ChannelManager::class);
+
+        // Login codes and other must-send texts go out through the same SMS channel the rules use.
+        $this->app->bind(SmsSender::class, ChannelSmsSender::class);
+    }
 
     protected function permissionGroups(): array
     {

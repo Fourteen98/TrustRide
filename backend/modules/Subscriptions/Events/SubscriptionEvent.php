@@ -55,6 +55,9 @@ abstract class SubscriptionEvent extends BaseDomainEvent
             'price' => Money::format($subscription->price),
             'starts_on' => $subscription->starts_on->toDateString(),
             'ends_on' => $subscription->ends_on->toDateString(),
+            // The same dates written for a person, e.g. "3 Nov 2026".
+            'starts_on_text' => $subscription->starts_on->format('j M Y'),
+            'ends_on_text' => $subscription->ends_on->format('j M Y'),
             'seats' => $seats,
             // The first seat, flat, so a simple template can say {car_number} without a loop.
             ...($seats[0] ?? []),

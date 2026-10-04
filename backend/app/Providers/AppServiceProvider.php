@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
         // Must exist before any module registers itself.
         $this->app->singleton(ModuleRegistry::class);
 
-        // Replaced by the Hubtel sender in Messaging (task M3).
+        // A fallback. Messaging rebinds this to its own SMS channel when it registers.
         $this->app->bind(SmsSender::class, LogSmsSender::class);
     }
 

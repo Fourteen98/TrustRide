@@ -7,12 +7,15 @@ Read `README.md` first. The plan is `docs/build-plan.pdf`.
 - Modules tell each other things with events that extend `App\Support\BaseDomainEvent`. Listeners are queued and must be safe to run twice.
 - Controllers and Filament screens hold no business rules. They call Actions.
 - Payments and Messaging must not import any other module.
+- No module sends a message itself. Fire an event with recipients and let a Messaging rule do it. Put anything a template might need in the event's payload as a plain value.
 - The allowed dependencies are listed in `tests/Arch/ModulesTest.php`. Change that table only when the plan changes.
 - Every permission is declared in a module provider, inside a group, with a scope (`platform` or `app`). Run `php artisan access:sync` after adding one.
 - Change roles through `SetRoleAccess` and groups through `SetGroupPermissions`. Never write to `role_has_permissions` directly.
 - Money is whole pesewas. Use `App\Support\Money` and `MoneyInput`. Never store cedis as a decimal.
 - A date with no time uses the `DateOnly` cast.
-- An admin screen calls an Action inside `Guarded::run()`, so a refusal shows as a notice. It uses the `GatedByPermission` trait for access.
+- Build admin screens from the shared pieces in `app/Support/Filament` and `resources/views/components/admin`. The table in `README.md` says which one is for what.
+- A button's action is `Guarded::calls(fn ($record, $data) => app(SomeAction::class)->handle(...))`. Access comes from the `GatedByPermission` trait. Statuses use `Columns::status()`, money uses `Columns::money()` and `MoneyInput`, enum choices use `Options::enum()`.
+- No inline styles in Blade. Add or extend an `x-admin.*` component.
 - When a rule needs a number nobody has decided, put it in the module's `config.php` and say so in `docs/domain-model.pdf`.
 - Phone numbers are stored in E.164. Use `App\Support\Phone::normalise`.
 - Rider endpoints never take a rider id. They work on the logged-in account's own record, through the `ResolvesRider` trait.

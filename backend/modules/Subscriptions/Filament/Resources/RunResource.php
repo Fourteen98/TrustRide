@@ -4,14 +4,18 @@ namespace Modules\Subscriptions\Filament\Resources;
 
 use App\Support\Filament\GatedByPermission;
 use App\Support\Filament\Guarded;
+use App\Support\Filament\Options;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -19,11 +23,14 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Modules\Drivers\Enums\DriverStatus;
 use Modules\Drivers\Enums\VehicleStatus;
 use Modules\Drivers\Models\Driver;
 use Modules\Drivers\Models\Vehicle;
 use Modules\Network\Models\Route;
+use Modules\Subscriptions\Actions\AnnounceToRun;
 use Modules\Subscriptions\Actions\SaveRun;
 use Modules\Subscriptions\Enums\Direction;
 use Modules\Subscriptions\Filament\Resources\RunResource\Pages\ManageRuns;
@@ -57,7 +64,7 @@ class RunResource extends Resource
             Select::make('route_id')->label('Route')->required()
                 ->options(fn () => Route::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id')),
             Select::make('direction')->required()->default(Direction::Outbound->value)
-                ->options(collect(Direction::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])),
+                ->options(Options::enum(Direction::class)),
             Select::make('driver_id')->label('Driver')->required()->live()
                 ->helperText('Only approved drivers are listed.')
                 ->options(fn () => Driver::query()->where('status', DriverStatus::Approved)->orderBy('name')->pluck('name', 'id')),
@@ -94,7 +101,22 @@ class RunResource extends Resource
                 IconColumn::make('is_active')->label('Running')->boolean(),
             ])
             ->recordActions([
-                EditAction::make()->using(fn (Action $action, Run $record, array $data) => Guarded::run($action, fn () => app(SaveRun::class)->handle($data, $record))),
+                Action::make('announce')
+                    ->label('Message riders')->icon(Heroicon::OutlinedChatBubbleLeftRight)
+                    ->visible(fn () => Guarded::can('messaging.broadcast'))
+                    ->modalHeading(fn (Run $record) => "Message the riders on the {$record->departureTime()} run")
+                    ->modalDescription('Goes to every rider expected on this run that day, on her preferred channel. Riders who said they won\'t ride are left out.')
+                    ->schema([
+                        DatePicker::make('date')->required()->default(fn () => today()),
+                        Textarea::make('message')->required()->rows(3)->maxLength(300)
+                            ->placeholder('The van is running 15 minutes late this morning. Sorry.'),
+                    ])
+                    ->action(Guarded::calls(function (Run $record, array $data) {
+                        $sent = app(AnnounceToRun::class)->handle($record, $data['message'], Guarded::staff(), Carbon::parse($data['date']));
+
+                        Notification::make()->success()->title("Sent to {$sent} ".Str::plural('rider', $sent))->send();
+                    })),
+                EditAction::make()->using(Guarded::calls(fn (Run $record, array $data) => app(SaveRun::class)->handle($data, $record))),
             ]);
     }
 
