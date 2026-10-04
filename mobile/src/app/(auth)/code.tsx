@@ -4,54 +4,41 @@ import { View } from 'react-native';
 
 import { useAuth } from '@/auth/auth-context';
 import { Button } from '@/components/button';
+import { MutedText } from '@/components/muted-text';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { useAction } from '@/hooks/use-action';
 
 /** Step 2 of login: the six-digit code. A good code signs the person in and the app moves to home by itself. */
 export default function CodeScreen() {
   const router = useRouter();
   const { phone } = useLocalSearchParams<{ phone: string }>();
   const { verifyCode, requestCode } = useAuth();
+  const check = useAction();
+  const resend = useAction();
   const [code, setCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [checking, setChecking] = useState(false);
-  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
 
-  async function submit(value = code) {
+  function submit(value = code) {
     if (value.length !== 6) {
-      setError('The code has six digits.');
-
-      return;
+      return check.fail('The code has six digits.');
     }
 
-    setError(null);
-    setChecking(true);
-
-    try {
-      await verifyCode(phone, value);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong. Try again.');
-      setChecking(false);
-    }
+    return check.run(() => verifyCode(phone, value));
   }
 
-  async function resend() {
-    setError(null);
-    setNotice(null);
-    setResending(true);
+  function sendAgain() {
+    check.clear();
+    setResent(false);
 
-    try {
-      await requestCode(phone);
-      setCode('');
-      setNotice('We sent a new code. The old one no longer works.');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong. Try again.');
-    } finally {
-      setResending(false);
-    }
+    return resend.run(() => requestCode(phone), {
+      then: () => {
+        setCode('');
+        setResent(true);
+      },
+    });
   }
 
   function change(text: string) {
@@ -74,7 +61,7 @@ export default function CodeScreen() {
         label="Code"
         value={code}
         onChangeText={change}
-        error={error}
+        error={check.error ?? resend.error}
         placeholder="123456"
         keyboardType="number-pad"
         autoComplete="one-time-code"
@@ -83,10 +70,10 @@ export default function CodeScreen() {
         autoFocus
       />
 
-      {notice ? <ThemedText type="small">{notice}</ThemedText> : null}
+      {resent ? <MutedText>We sent a new code. The old one no longer works.</MutedText> : null}
 
-      <Button label="Log in" onPress={() => submit()} loading={checking} />
-      <Button label="Send a new code" variant="plain" onPress={resend} loading={resending} />
+      <Button label="Log in" onPress={() => submit()} loading={check.busy} />
+      <Button label="Send a new code" variant="plain" onPress={sendAgain} loading={resend.busy} />
       <Button label="Use a different number" variant="plain" onPress={() => router.back()} />
     </Screen>
   );

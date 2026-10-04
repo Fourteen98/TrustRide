@@ -13,6 +13,7 @@ use UnitEnum;
  * Without the second permission the add, edit and delete buttons are not there.
  *
  * The resource sets: protected static string $viewPermission, $managePermission.
+ * A list-only screen also overrides isReadOnly().
  */
 trait GatedByPermission
 {
@@ -23,9 +24,18 @@ trait GatedByPermission
 
         $allowed = in_array($action, ['viewAny', 'view'], true)
             ? static::allows(static::$viewPermission) || static::allows(static::$managePermission)
-            : static::allows(static::$managePermission);
+            : ! static::isReadOnly() && static::allows(static::$managePermission);
 
         return $allowed ? Response::allow() : Response::deny();
+    }
+
+    /**
+     * Override to return true on a screen that only lists things. Nothing can then be added, edited
+     * or deleted through Filament's own buttons. The screen's custom actions decide for themselves.
+     */
+    protected static function isReadOnly(): bool
+    {
+        return false;
     }
 
     protected static function allows(string $permission): bool

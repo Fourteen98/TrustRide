@@ -33,7 +33,7 @@ class ManageSubscriptions extends ManageRecords
                             ->mapWithKeys(fn (Rider $rider) => [$rider->id => "{$rider->name}, {$rider->account->phone}"])),
                     Select::make('plan_id')->label('Plan')->required()->options(fn () => SubscriptionResource::planOptions()),
                 ])
-                ->action(fn (Action $action, array $data) => Guarded::run($action, fn () => app(ActivateSubscription::class)->handle(
+                ->action(Guarded::calls(fn (array $data) => app(ActivateSubscription::class)->handle(
                     Rider::query()->findOrFail($data['rider_id']), Plan::query()->findOrFail($data['plan_id']), Guarded::staff(),
                 )))
                 ->successNotificationTitle('Subscription active'),

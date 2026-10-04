@@ -2,9 +2,10 @@
 
 namespace Modules\Subscriptions\Filament\Resources;
 
+use App\Support\Filament\Columns;
 use App\Support\Filament\GatedByPermission;
 use App\Support\Filament\MoneyInput;
-use App\Support\Money;
+use App\Support\Filament\Options;
 use BackedEnum;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -46,7 +47,7 @@ class PlanResource extends Resource
             Select::make('trips_per_day')->label('What it covers')->required()->default(1)
                 ->options([1 => 'One trip a day (one seat)', 2 => 'There and back (two seats)']),
             Select::make('no_show_policy')->label('When she doesn\'t ride')->required()->default(NoShowPolicy::CreditWithNotice->value)
-                ->options(collect(NoShowPolicy::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])),
+                ->options(Options::enum(NoShowPolicy::class)),
             TextInput::make('notice_cutoff_minutes')->label('Notice needed, in minutes before departure')
                 ->helperText('720 is 12 hours. For a 6:30am van, that is 6:30pm the evening before.')
                 ->numeric()->required()->minValue(0)->default(720),
@@ -61,7 +62,7 @@ class PlanResource extends Resource
             ->defaultSort('duration_days')
             ->columns([
                 TextColumn::make('name')->sortable(),
-                TextColumn::make('price')->formatStateUsing(fn (int $state) => Money::format($state))->sortable(),
+                Columns::money('price')->sortable(),
                 TextColumn::make('duration_days')->label('Days')->sortable(),
                 TextColumn::make('trips_per_day')->label('Covers')->formatStateUsing(fn (int $state) => $state === 1 ? 'One trip a day' : 'There and back'),
                 TextColumn::make('no_show_policy')->label('No-shows')->formatStateUsing(fn (NoShowPolicy $state) => $state->label()),

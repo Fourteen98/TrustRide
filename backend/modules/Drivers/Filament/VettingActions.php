@@ -73,7 +73,7 @@ final class VettingActions
                     ->options(self::failed($record)->mapWithKeys(fn (VettingCheck $check) => [$check->id => $check->item->label])),
                 Textarea::make('reason')->label('Why is this acceptable?')->required()->rows(3),
             ])
-            ->action(fn (Action $action, Driver|Vehicle $record, array $data) => Guarded::run($action, fn () => app(OverrideVettingCheck::class)->handle(
+            ->action(Guarded::calls(fn (Driver|Vehicle $record, array $data) => app(OverrideVettingCheck::class)->handle(
                 $record->vettingChecks()->findOrFail($data['check_id']), Guarded::staff(), $data['reason'],
             )))
             ->successNotificationTitle('Override recorded');

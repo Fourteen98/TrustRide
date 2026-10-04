@@ -3,6 +3,7 @@
 namespace Modules\Access\Filament\Resources;
 
 use App\Support\Filament\GatedByPermission;
+use App\Support\Filament\Options;
 use App\Support\Scope;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
@@ -49,7 +50,7 @@ class RoleResource extends Resource
                 ->disabledOn('edit'),
             Select::make('guard_name')
                 ->label('Scope')
-                ->options(collect(Scope::cases())->mapWithKeys(fn (Scope $scope) => [$scope->value => $scope->label()]))
+                ->options(Options::enum(Scope::class))
                 ->required()->live()
                 ->disabledOn('edit'),
             Select::make('screens')

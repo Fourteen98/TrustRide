@@ -41,17 +41,51 @@ src/
   app/                 the routes (expo-router)
     _layout.tsx        decides between (auth) and (app) from the login state
     (auth)/            phone number, then code
-    (app)/             home and account. Only reachable when logged in.
+    (app)/             home, apply, plans, not riding, account. Only reachable when logged in.
   screens/             the three fixed screen sets: rider, driver, mate
-  rider/               the rider's API calls, the seat card, and the loader hook
+  rider/               the rider's API calls and the seat card
+  components/          the shared building blocks, listed below
+  hooks/               useLoader, useAction, the theme and colour scheme
   auth/                login state, token storage, can(permission)
   api/
     client.ts          the one API client
     schema.d.ts        generated from the backend. Don't edit by hand.
-  components/          button, text field, card, choice, notice, screen frame
-  lib/                 date and phone helpers
+  lib/                 date, phone and error helpers
   constants/theme.ts   colours and spacing
 ```
+
+## Building a screen from the shared pieces
+
+A screen should be mostly these, with very little styling of its own.
+
+| Piece | Use it for |
+|---|---|
+| `Screen` | The frame of every screen: safe area, padding, scrolling, keyboard, pull to refresh |
+| `Loadable` | Anything fetched from the server: spinner, error with "Try again", then the content |
+| `Card` | A titled panel. Plain text inside becomes small secondary text. |
+| `Button` | Every button. `variant="plain"` for the quieter one, `loading` while busy. |
+| `TextField` | Every text input, with its label and error |
+| `Choice` and `ChoiceGroup` | Picking one of several: stops, times, days. Rows or chips. |
+| `Detail` | A small label with its value under it |
+| `MutedText` | Small secondary text |
+| `Notice` | An error or an info line |
+| `HomeHeader` | The name, Account link and role switcher on each home |
+| `ThemedText` | All other text, so colours and sizes come from the theme |
+
+Two hooks do the work behind them:
+
+```tsx
+// Fetching. Reloads when the screen comes back into view.
+const plans = useLoader(riderApi.plans);
+<Loadable state={plans}>{(list) => list.map((plan) => <Card key={plan.id} title={plan.name} />)}</Loadable>
+
+// Doing. Tracks busy for the button and keeps the error to show.
+const save = useAction();
+<Notice text={save.error} />
+<Button label="Send" loading={save.busy} onPress={() => save.run(() => riderApi.apply(body), { then: router.back })} />
+```
+
+If you find yourself writing `useState` for "loading" or "error", or a `try` and `catch` in a screen, use one of the two hooks. If you write the same few lines of layout on a second screen, make it a component.
 
 ## How roles work in the app
 

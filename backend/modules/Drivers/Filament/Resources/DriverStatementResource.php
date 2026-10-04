@@ -2,9 +2,9 @@
 
 namespace Modules\Drivers\Filament\Resources;
 
+use App\Support\Filament\Columns;
 use App\Support\Filament\GatedByPermission;
 use App\Support\Filament\Guarded;
-use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
@@ -12,7 +12,6 @@ use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
 use Modules\Drivers\Actions\MarkStatementPaid;
 use Modules\Drivers\Filament\Resources\DriverStatementResource\Pages\ManageDriverStatements;
 use Modules\Drivers\Models\DriverStatement;
@@ -40,14 +39,9 @@ class DriverStatementResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    public static function canCreate(): bool
+    protected static function isReadOnly(): bool
     {
-        return false;
-    }
-
-    public static function canEdit(Model $record): bool
-    {
-        return false;
+        return true;
     }
 
     public static function table(Table $table): Table
@@ -57,11 +51,10 @@ class DriverStatementResource extends Resource
             ->columns([
                 TextColumn::make('driver.name')->searchable(),
                 TextColumn::make('period')->label('Month')->formatStateUsing(fn ($state) => $state->format('F Y'))->sortable(),
-                TextColumn::make('commission_amount')->label('Commission')->formatStateUsing(fn (int $state) => Money::format($state)),
-                TextColumn::make('bonus_amount')->label('Bonus')->formatStateUsing(fn (int $state) => Money::format($state)),
-                TextColumn::make('total')->state(fn (DriverStatement $record) => Money::format($record->total())),
-                TextColumn::make('assessment_outcome')->label('Assessment')->badge()
-                    ->formatStateUsing(fn ($state) => $state?->label())->placeholder('Not assessed'),
+                Columns::money('commission_amount')->label('Commission'),
+                Columns::money('bonus_amount')->label('Bonus'),
+                Columns::money('total')->state(fn (DriverStatement $record) => $record->total()),
+                Columns::status('assessment_outcome', ['met' => 'success', 'not_met' => 'danger'])->label('Assessment')->placeholder('Not assessed'),
                 TextColumn::make('paid_at')->label('Paid')->date()->placeholder('Not paid'),
                 TextColumn::make('payment_reference')->label('Reference')->placeholder('None'),
             ])
@@ -71,7 +64,7 @@ class DriverStatementResource extends Resource
                     ->visible(fn (DriverStatement $record) => Guarded::can('drivers.statements.pay') && ! $record->isPaid())
                     ->modalDescription('Pay the driver first, outside the system. This only records that it happened.')
                     ->schema([TextInput::make('reference')->label('Payment reference')->required()->maxLength(100)])
-                    ->action(fn (Action $action, DriverStatement $record, array $data) => Guarded::run($action, fn () => app(MarkStatementPaid::class)->handle($record, Guarded::staff(), $data['reference'])))
+                    ->action(Guarded::calls(fn (DriverStatement $record, array $data) => app(MarkStatementPaid::class)->handle($record, Guarded::staff(), $data['reference'])))
                     ->successNotificationTitle('Marked as paid'),
             ]);
     }

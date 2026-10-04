@@ -18,7 +18,7 @@ use Modules\Subscriptions\Models\Subscription;
 class TodaysRiders
 {
     /**
-     * @return Collection<int, array{rider_id: int, name: string, phone: string, stop: string, time: ?string, absent: bool}>
+     * @return Collection<int, array{rider_id: int, name: string, phone: string, channel: ?string, stop: string, time: ?string, absent: bool}>
      */
     public function handle(Run $run, ?CarbonInterface $date = null): Collection
     {
@@ -50,6 +50,7 @@ class TodaysRiders
                 'rider_id' => $seat->rider_id,
                 'name' => $seat->rider->name,
                 'phone' => $seat->rider->account->phone,
+                'channel' => $seat->rider->account->preferred_channel,
                 'stop' => $seat->stop->name,
                 'time' => $run->timeAtStop($seat->stop_id),
                 'absent' => $absent->has($seat->rider_id),

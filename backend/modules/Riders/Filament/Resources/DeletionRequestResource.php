@@ -2,6 +2,7 @@
 
 namespace Modules\Riders\Filament\Resources;
 
+use App\Support\Filament\Columns;
 use App\Support\Filament\GatedByPermission;
 use App\Support\Filament\Guarded;
 use BackedEnum;
@@ -39,9 +40,9 @@ class DeletionRequestResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    public static function canCreate(): bool
+    protected static function isReadOnly(): bool
     {
-        return false;
+        return true;
     }
 
     public static function getNavigationBadge(): ?string
@@ -58,13 +59,7 @@ class DeletionRequestResource extends Resource
             ->columns([
                 TextColumn::make('rider.name')->label('Rider')->placeholder('Deleted'),
                 TextColumn::make('rider.account.phone')->label('Phone')->placeholder('Deleted'),
-                TextColumn::make('status')->badge()
-                    ->formatStateUsing(fn (string $state) => ucfirst($state))
-                    ->color(fn (string $state) => match ($state) {
-                        DataDeletionRequest::PENDING => 'warning',
-                        DataDeletionRequest::COMPLETED => 'success',
-                        default => 'gray',
-                    }),
+                Columns::status('status', ['pending' => 'warning', 'completed' => 'success']),
                 TextColumn::make('requested_at')->label('Asked')->since()->sortable(),
                 TextColumn::make('completed_at')->label('Deleted on')->date()->placeholder('Not yet'),
                 TextColumn::make('completer.name')->label('Deleted by')->placeholder('Nobody yet'),
@@ -77,7 +72,7 @@ class DeletionRequestResource extends Resource
                     ->modalHeading(fn (DataDeletionRequest $record) => "Delete {$record->rider?->name} for good?")
                     ->modalDescription('This removes her applications, seat, subscriptions and messages, and her login. It ends any running subscription and frees her seat. It cannot be undone.')
                     ->modalSubmitActionLabel('Yes, delete her data')
-                    ->action(fn (Action $action, DataDeletionRequest $record) => Guarded::run($action, fn () => app(EraseRider::class)->handle($record, Guarded::staff())))
+                    ->action(Guarded::calls(fn (DataDeletionRequest $record) => app(EraseRider::class)->handle($record, Guarded::staff())))
                     ->successNotificationTitle('Her data has been deleted'),
             ]);
     }

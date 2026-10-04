@@ -2,6 +2,7 @@
 
 namespace Modules\Drivers\Filament\Resources;
 
+use App\Support\Filament\Columns;
 use App\Support\Filament\GatedByPermission;
 use App\Support\Filament\Guarded;
 use BackedEnum;
@@ -16,7 +17,6 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Modules\Drivers\Actions\ApproveVehicle;
-use Modules\Drivers\Enums\VehicleStatus;
 use Modules\Drivers\Filament\Resources\VehicleResource\Pages\ManageVehicles;
 use Modules\Drivers\Filament\VettingActions;
 use Modules\Drivers\Models\Driver;
@@ -61,13 +61,7 @@ class VehicleResource extends Resource
                 TextColumn::make('make')->placeholder('Not given'),
                 TextColumn::make('colour'),
                 TextColumn::make('seats_total')->label('Seats'),
-                TextColumn::make('status')->badge()
-                    ->formatStateUsing(fn (VehicleStatus $state) => $state->label())
-                    ->color(fn (VehicleStatus $state) => match ($state) {
-                        VehicleStatus::Approved => 'success',
-                        VehicleStatus::OffRoad => 'danger',
-                        VehicleStatus::Pending => 'warning',
-                    }),
+                Columns::status('status', ['approved' => 'success', 'off_road' => 'danger', 'pending' => 'warning']),
             ])
             ->recordActions([
                 VettingActions::checklist(),
@@ -76,7 +70,7 @@ class VehicleResource extends Resource
                     ->icon(Heroicon::OutlinedCheckCircle)->color('success')
                     ->visible(fn (Vehicle $record) => Guarded::can('drivers.vet') && ! $record->isApproved())
                     ->requiresConfirmation()
-                    ->action(fn (Action $action, Vehicle $record) => Guarded::run($action, fn () => app(ApproveVehicle::class)->handle($record)))
+                    ->action(Guarded::calls(fn (Vehicle $record) => app(ApproveVehicle::class)->handle($record)))
                     ->successNotificationTitle('Vehicle approved'),
                 EditAction::make(),
             ]);

@@ -2,10 +2,11 @@
 
 namespace Modules\Drivers\Filament\Resources;
 
+use App\Support\Filament\Columns;
 use App\Support\Filament\GatedByPermission;
 use App\Support\Filament\Guarded;
 use App\Support\Filament\MoneyInput;
-use App\Support\Money;
+use App\Support\Filament\Options;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -70,14 +71,8 @@ class DriverResource extends Resource
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('phone')->searchable(),
-                TextColumn::make('status')->badge()
-                    ->formatStateUsing(fn (DriverStatus $state) => $state->label())
-                    ->color(fn (DriverStatus $state) => match ($state) {
-                        DriverStatus::Approved => 'success',
-                        DriverStatus::Suspended => 'danger',
-                        DriverStatus::Pending => 'warning',
-                    }),
-                TextColumn::make('monthly_commission')->label('Commission')->formatStateUsing(fn (int $state) => Money::format($state)),
+                Columns::status('status', ['approved' => 'success', 'suspended' => 'danger', 'pending' => 'warning']),
+                Columns::money('monthly_commission')->label('Commission'),
                 TextColumn::make('vehicles.registration_number')->label('Vehicles')->placeholder('None'),
                 TextColumn::make('mates.name')->label('Mates')->placeholder('None'),
             ])
@@ -88,7 +83,7 @@ class DriverResource extends Resource
                     ->icon(Heroicon::OutlinedCheckCircle)->color('success')
                     ->visible(fn (Driver $record) => Guarded::can('drivers.vet') && ! $record->isApproved())
                     ->requiresConfirmation()
-                    ->action(fn (Action $action, Driver $record) => Guarded::run($action, fn () => app(ApproveDriver::class)->handle($record, Guarded::staff())))
+                    ->action(Guarded::calls(fn (Driver $record) => app(ApproveDriver::class)->handle($record, Guarded::staff())))
                     ->successNotificationTitle('Driver approved'),
                 ActionGroup::make([
                     EditAction::make(),
@@ -99,7 +94,7 @@ class DriverResource extends Resource
                             TextInput::make('name')->required()->maxLength(100),
                             TextInput::make('phone')->tel()->required()->helperText('He logs in to the app with this number.'),
                         ])
-                        ->action(fn (Action $action, Driver $record, array $data) => Guarded::run($action, fn () => app(RegisterMate::class)->handle($record, $data['name'], $data['phone'])))
+                        ->action(Guarded::calls(fn (Driver $record, array $data) => app(RegisterMate::class)->handle($record, $data['name'], $data['phone'])))
                         ->successNotificationTitle('Mate added'),
                     Action::make('assess')
                         ->label('Assess a month')->icon(Heroicon::OutlinedClipboardDocumentCheck)
@@ -107,11 +102,11 @@ class DriverResource extends Resource
                         ->schema([
                             DatePicker::make('month')->label('Any day in the month')->required()->default(fn () => now()->subMonthNoOverflow()->startOfMonth()),
                             Select::make('outcome')->required()
-                                ->options(collect(AssessmentOutcome::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])),
+                                ->options(Options::enum(AssessmentOutcome::class)),
                             Textarea::make('notes')->rows(3),
                             MoneyInput::make('bonus')->default(0),
                         ])
-                        ->action(fn (Action $action, Driver $record, array $data) => Guarded::run($action, fn () => app(RecordAssessment::class)->handle(
+                        ->action(Guarded::calls(fn (Driver $record, array $data) => app(RecordAssessment::class)->handle(
                             $record, Carbon::parse($data['month']), AssessmentOutcome::from($data['outcome']), Guarded::staff(), $data['notes'] ?? null, (int) $data['bonus'],
                         )))
                         ->successNotificationTitle('Assessment recorded'),
@@ -119,7 +114,7 @@ class DriverResource extends Resource
                         ->icon(Heroicon::OutlinedNoSymbol)->color('danger')
                         ->visible(fn (Driver $record) => Guarded::can('drivers.manage') && $record->status !== DriverStatus::Suspended)
                         ->schema([Textarea::make('reason')->required()->rows(3)])
-                        ->action(fn (Action $action, Driver $record, array $data) => Guarded::run($action, fn () => app(SuspendDriver::class)->handle($record, $data['reason'])))
+                        ->action(Guarded::calls(fn (Driver $record, array $data) => app(SuspendDriver::class)->handle($record, $data['reason'])))
                         ->successNotificationTitle('Driver suspended'),
                 ]),
             ]);

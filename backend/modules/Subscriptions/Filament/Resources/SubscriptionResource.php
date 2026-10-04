@@ -2,8 +2,10 @@
 
 namespace Modules\Subscriptions\Filament\Resources;
 
+use App\Support\Filament\Columns;
 use App\Support\Filament\GatedByPermission;
 use App\Support\Filament\Guarded;
+use App\Support\Filament\Options;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -14,7 +16,6 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Modules\Subscriptions\Actions\ActivateSubscription;
 use Modules\Subscriptions\Actions\GiveAbsenceNotice;
@@ -40,14 +41,9 @@ class SubscriptionResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
-    public static function canCreate(): bool
+    protected static function isReadOnly(): bool
     {
-        return false;
-    }
-
-    public static function canEdit(Model $record): bool
-    {
-        return false;
+        return true;
     }
 
     public static function planOptions()
@@ -64,17 +60,15 @@ class SubscriptionResource extends Resource
                 TextColumn::make('rider.name')->label('Rider')->searchable(),
                 TextColumn::make('rider.account.phone')->label('Phone')->searchable(),
                 TextColumn::make('plan.name')->label('Plan'),
-                TextColumn::make('price')->formatStateUsing(fn (int $state) => Money::format($state)),
+                Columns::money('price'),
                 TextColumn::make('starts_on')->label('Starts')->date()->sortable(),
                 TextColumn::make('ends_on')->label('Ends')->date()->sortable(),
                 TextColumn::make('credited_days')->label('Days credited'),
-                TextColumn::make('status')->badge()
-                    ->formatStateUsing(fn (SubscriptionStatus $state) => $state->label())
-                    ->color(fn (SubscriptionStatus $state) => $state === SubscriptionStatus::Active ? 'success' : 'gray'),
+                Columns::status('status', ['active' => 'success']),
                 TextColumn::make('activator.name')->label('Activated by')->placeholder('Payment')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('status')->options(collect(SubscriptionStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])),
+                SelectFilter::make('status')->options(Options::enum(SubscriptionStatus::class)),
             ])
             ->recordActions([
                 Action::make('renew')
@@ -82,7 +76,7 @@ class SubscriptionResource extends Resource
                     ->visible(fn () => Guarded::can('subscriptions.activate'))
                     ->modalDescription('The new subscription starts the day after the current one ends, so she loses no days.')
                     ->schema([Select::make('plan_id')->label('Plan')->required()->options(fn () => static::planOptions())])
-                    ->action(fn (Action $action, Subscription $record, array $data) => Guarded::run($action, fn () => app(ActivateSubscription::class)->handle(
+                    ->action(Guarded::calls(fn (Subscription $record, array $data) => app(ActivateSubscription::class)->handle(
                         $record->rider, Plan::query()->findOrFail($data['plan_id']), Guarded::staff(),
                     )))
                     ->successNotificationTitle('Renewed'),
@@ -92,7 +86,7 @@ class SubscriptionResource extends Resource
                     ->modalHeading('She won\'t ride on a day')
                     ->modalDescription('Use this when she tells an operator. Whether the day is credited follows the rule her subscription was bought with.')
                     ->schema([DatePicker::make('date')->required()->minDate(fn () => today())->default(fn () => today()->addDay())])
-                    ->action(fn (Action $action, Subscription $record, array $data) => Guarded::run($action, fn () => app(GiveAbsenceNotice::class)->handle(
+                    ->action(Guarded::calls(fn (Subscription $record, array $data) => app(GiveAbsenceNotice::class)->handle(
                         $record->rider, Carbon::parse($data['date']),
                     )))
                     ->successNotificationTitle('Recorded'),

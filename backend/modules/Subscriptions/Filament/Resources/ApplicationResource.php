@@ -2,8 +2,10 @@
 
 namespace Modules\Subscriptions\Filament\Resources;
 
+use App\Support\Filament\Columns;
 use App\Support\Filament\GatedByPermission;
 use App\Support\Filament\Guarded;
+use App\Support\Filament\Options;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
@@ -14,7 +16,6 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
 use Modules\Riders\Actions\RejectApplication;
 use Modules\Riders\Enums\ApplicationStatus;
 use Modules\Riders\Enums\RejectionReason;
@@ -48,14 +49,9 @@ class ApplicationResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-    public static function canCreate(): bool
+    protected static function isReadOnly(): bool
     {
-        return false;
-    }
-
-    public static function canEdit(Model $record): bool
-    {
-        return false;
+        return true;
     }
 
     public static function getNavigationBadge(): ?string
@@ -76,21 +72,14 @@ class ApplicationResource extends Resource
                 TextColumn::make('stop.name')->label('Stop'),
                 TextColumn::make('morning_time')->label('Morning')->formatStateUsing(fn ($state) => substr((string) $state, 0, 5))->placeholder('No'),
                 TextColumn::make('evening_time')->label('Evening')->formatStateUsing(fn ($state) => substr((string) $state, 0, 5))->placeholder('No'),
-                TextColumn::make('status')->badge()
-                    ->formatStateUsing(fn (ApplicationStatus $state) => $state->label())
-                    ->color(fn (ApplicationStatus $state) => match ($state) {
-                        ApplicationStatus::Approved => 'success',
-                        ApplicationStatus::Rejected => 'danger',
-                        ApplicationStatus::Pending => 'warning',
-                        ApplicationStatus::Withdrawn => 'gray',
-                    }),
+                Columns::status('status', ['approved' => 'success', 'rejected' => 'danger', 'pending' => 'warning']),
                 TextColumn::make('rejection_reason')->label('Reason')->formatStateUsing(fn (?RejectionReason $state) => $state?->label())
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')->label('Applied')->since()->sortable(),
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->options(collect(ApplicationStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]))
+                    ->options(Options::enum(ApplicationStatus::class))
                     ->default(ApplicationStatus::Pending->value),
             ])
             ->recordActions([
@@ -110,7 +99,7 @@ class ApplicationResource extends Resource
                                     $run->vehicle->registration_number, $run->seatsFree(), $run->seats_held,
                                 )])),
                     ])
-                    ->action(fn (Action $action, RiderApplication $record, array $data) => Guarded::run($action, fn () => app(ApproveApplicationWithSeats::class)->handle(
+                    ->action(Guarded::calls(fn (RiderApplication $record, array $data) => app(ApproveApplicationWithSeats::class)->handle(
                         $record, array_map('intval', $data['run_ids']), Guarded::staff(),
                     )))
                     ->successNotificationTitle('Approved, and her seat is reserved'),
@@ -120,10 +109,10 @@ class ApplicationResource extends Resource
                     ->modalDescription('A rejection is about what we can serve, not about her. She is told the reason.')
                     ->schema([
                         Select::make('reason')->required()
-                            ->options(collect(RejectionReason::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])),
+                            ->options(Options::enum(RejectionReason::class)),
                         Textarea::make('note')->rows(2),
                     ])
-                    ->action(fn (Action $action, RiderApplication $record, array $data) => Guarded::run($action, fn () => app(RejectApplication::class)->handle(
+                    ->action(Guarded::calls(fn (RiderApplication $record, array $data) => app(RejectApplication::class)->handle(
                         $record, Guarded::staff(), RejectionReason::from($data['reason']), $data['note'] ?? null,
                     )))
                     ->successNotificationTitle('Application rejected'),
