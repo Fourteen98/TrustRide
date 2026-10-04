@@ -83,6 +83,7 @@ class MessageRuleResource extends Resource
                     'rider' => 'The rider',
                     'driver' => 'The driver',
                     'mate' => 'The mate',
+                    'operator' => 'The operator on call',
                 ]),
             Select::make('channel')->label('On')->required()->default(MessageRule::PREFERRED)
                 ->options([

@@ -42,7 +42,7 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->colors(['primary' => Color::Amber])
             // The order of the menu: what operators use most comes first.
-            ->navigationGroups(['Subscriptions', 'Riders', 'Drivers', 'Messaging', 'Network', 'Access'])
+            ->navigationGroups(['Subscriptions', 'Support', 'Riders', 'Drivers', 'Messaging', 'Network', 'Access'])
             ->pages([Dashboard::class])
             ->widgets([AccountWidget::class])
             ->middleware([

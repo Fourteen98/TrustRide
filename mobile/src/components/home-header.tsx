@@ -7,10 +7,24 @@ import { useTheme } from '@/hooks/use-theme';
 
 import { ThemedText } from './themed-text';
 
-/** The top of home: who is logged in, the way to the account screen, and the role switcher if they hold more than one role. */
+function HeaderLink({ href, label }: { href: '/help' | '/account'; label: string }) {
+  const theme = useTheme();
+
+  return (
+    <Link href={href} asChild>
+      <Pressable accessibilityRole="button" hitSlop={12}>
+        <ThemedText type="smallBold" style={{ color: theme.primary }}>
+          {label}
+        </ThemedText>
+      </Pressable>
+    </Link>
+  );
+}
+
+/** The top of home: who is logged in, the ways to help and to the account screen, and the role switcher if they hold more than one role. */
 export function HomeHeader() {
   const theme = useTheme();
-  const { account, activeRole, switchRole } = useAuth();
+  const { account, activeRole, switchRole, can } = useAuth();
   const roles = screenRoles(account);
 
   return (
@@ -22,13 +36,8 @@ export function HomeHeader() {
           </ThemedText>
           <ThemedText type="subtitle">{account?.name ?? 'Welcome'}</ThemedText>
         </View>
-        <Link href="/account" asChild>
-          <Pressable accessibilityRole="button" hitSlop={12}>
-            <ThemedText type="smallBold" style={{ color: theme.primary }}>
-              Account
-            </ThemedText>
-          </Pressable>
-        </Link>
+        {can('support.alert.raise') ? <HeaderLink href="/help" label="Help" /> : null}
+        <HeaderLink href="/account" label="Account" />
       </View>
 
       {roles.length > 1 ? (

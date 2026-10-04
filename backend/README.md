@@ -241,6 +241,23 @@ Payments knows nothing about riders or plans. It charges "a thing with a type an
 
 **Real SMS.** Set `MESSAGING_SMS_DRIVER=hubtel` and the `HUBTEL_SMS_` values. These are the SMS API keys, a different pair from the payment keys. Login codes and every message rule then go out as real texts.
 
+## Support
+
+Anyone in the app can write to TrustRide from the Help screen. Operators work the queue in the console under Support > Queue.
+
+- **One conversation at a time.** Her first message picks what it is about and opens a case. Anything she writes while it is open is added to it. After it is resolved, her next message opens a new one.
+- **What the operator sees.** Who she is, what she rides (route, stop, time, car, driver) and a timeline of everything said and done. The side that takes the message gathers "what she rides" (`App\Api\Support\Reporter`), because Support itself knows nothing about seats.
+- **What the operator can do.** Take it, hand it to a colleague, reply, add a note, mark it as an incident, resolve it, reopen it. A reply shows in the app and is sent to her phone. A note is for staff only.
+- **Calls and WhatsApp.** "Record a case" puts a phone call or a WhatsApp message into the same queue. If the number has an app account she sees the case in the app. WhatsApp messages do not arrive by themselves yet. That needs the WhatsApp Business API.
+- **Incidents.** "I don't feel safe" becomes a high-severity incident the moment it arrives. Staff can mark any case as one. The phone in `SUPPORT_ALERT_PHONE` is texted. An incident is kept when a rider's data is erased, with her name and number removed. Ordinary cases are deleted.
+
+```
+GET  /api/support/v1/case       her open case, or one resolved in the last 7 days, and the categories
+POST /api/support/v1/messages   {message, category?}
+```
+
+Not built: the trip share link page (S3). It needs Trips.
+
 ## What the console does today
 
 Log in at `/admin`. The menu follows your permissions.
@@ -302,5 +319,5 @@ An action or checklist used on two screens goes in a class of its own, like `Mod
 - Push notifications in the app, and letting a rider choose her channel (task R5).
 - Automatic deletion of riders who have gone quiet (task H1). Deletion on request works.
 - Trips, live location and the driver and mate screens (Phase 7).
-- Support queue and incidents (Phase 6).
+- WhatsApp messages arriving in the support queue by themselves, and the trip share link (rest of Phase 6).
 - Deploy pipeline and backups (task F8).

@@ -123,6 +123,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/support/v1/case": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Her conversation with TrustRide
+         * @description The open case if she has one, otherwise one resolved in the last few days so she can read the answer.
+         *     Null if there is neither. Ask again every so often while a case is open, to pick up replies.
+         */
+        get: operations["support.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/support/v1/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Write to TrustRide
+         * @description Her first message opens a case and needs a category. Anything she sends while it is open is added to it.
+         *     "I don't feel safe" is treated as an incident at once.
+         */
+        post: operations["support.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rider/v1/home": {
         parameters: {
             query?: never;
@@ -358,6 +400,32 @@ export interface components {
             rejection_note: string | null;
             submitted_at: string;
         };
+        /**
+         * CaseCategory
+         * @description What the person says the problem is. She picks one when she first writes.
+         * @enum {string}
+         */
+        CaseCategory: "van_late" | "van_missing" | "seat_taken" | "crew" | "payment" | "safety" | "other";
+        /** CaseResource */
+        CaseResource: {
+            /** @enum {string} */
+            status: "open" | "resolved";
+            /**
+             * @description What it is about, as she chose it. e.g. "The van didn't come"
+             * @enum {string}
+             */
+            about: "The van is late" | "The van didn't come" | "My seat was taken" | "A problem with the driver or mate" | "A payment problem" | "I don't feel safe" | "Something else";
+            opened_at: string;
+            /** @description True once a member of staff has picked it up */
+            taken: boolean;
+            /** @description What was said, oldest first. Staff notes are not included. */
+            messages: {
+                /** @enum {string} */
+                from: "you" | "trustride";
+                body: string;
+                at: string;
+            }[];
+        };
         /** NoticeResource */
         NoticeResource: {
             /** @description "2026-10-07" */
@@ -574,6 +642,67 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "support.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        case: components["schemas"]["CaseResource"] | null;
+                        /** @description What she can say it is about when she starts a new conversation. */
+                        categories: {
+                            key: string;
+                            label: string;
+                        }[];
+                        support: {
+                            phone: string | null;
+                            whatsapp: string | null;
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "support.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    message: string;
+                    category?: components["schemas"]["CaseCategory"] | null;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        case: components["schemas"]["CaseResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
         };
     };
     "home.show": {

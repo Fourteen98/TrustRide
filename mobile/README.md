@@ -141,3 +141,7 @@ npm run lint
 - **Release 2** adds the driver and mate screens and background location.
 
 Don't add `expo-location` or any location permission until release 2.
+
+## Help
+
+`src/app/(app)/help.tsx` is the same for every role. The link sits in the home header for any account with the `support.alert.raise` permission. The screen asks the server every 10 seconds while a case is open, so a reply from staff appears by itself.

@@ -7,4 +7,5 @@
 require app_path('Api/Auth/routes.php');
 require app_path('Api/Rider/routes.php');
 require app_path('Api/Driver/routes.php');
+require app_path('Api/Support/routes.php');
 require app_path('Api/Webhooks/routes.php');
