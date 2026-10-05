@@ -241,6 +241,29 @@ Payments knows nothing about riders or plans. It charges "a thing with a type an
 
 **Real SMS.** Set `MESSAGING_SMS_DRIVER=hubtel` and the `HUBTEL_SMS_` values. These are the SMS API keys, a different pair from the payment keys. Login codes and every message rule then go out as real texts.
 
+## Trips and the live map
+
+A trip is one run on one day. The row is created when the van sets off.
+
+```
+crew app   GET  /api/driver/v1/today            today's runs, riders by stop
+           POST /api/driver/v1/trip/start       {run_id}          riders are told the van has set off
+           POST /api/driver/v1/trip/pickups     {run_id, rider_id, status}     the mate only
+           POST /api/driver/v1/trip/location    {run_id, pings[]}  both phones, up to 200 at once
+           POST /api/driver/v1/trip/end         {run_id}
+rider app  GET  /api/rider/v1/trips             status, stops away, position, map link
+anyone     GET  /t/{public id}                  the live map page. No login.
+```
+
+- **One van, two phones.** The driver's and the mate's phone both send positions. Every one is kept as history. The trip keeps only the newest, so the van stays on the map if one phone dies. A late batch from a phone that was offline never moves the van backwards.
+- **"Stops away" needs no map service.** A stop counts as reached when the van comes within 150 metres of its pin, or when the mate marks anyone there. Stops need a latitude and longitude (Network > Stops) for the first to work. The second works without.
+- **One map, three places.** `/t/{public id}` is a plain web page (`resources/views/trip.blade.php`) using Leaflet and OpenStreetMap, which cost nothing and need no key. The app shows that same page inside itself, the share link opens it, and the console links to it. It names no rider, can't be guessed, and stops showing the van when the trip ends.
+- **By hand.** Operators can start and end a trip under Subscriptions > Trips when the crew's app is off.
+- **Housekeeping.** `trips:end-stale` ends trips nobody ended, after midnight. `trips:prune` deletes positions older than `TRIPS_LOCATION_HISTORY_DAYS` (30 until the business decides).
+- **Try it without a van.** `php artisan trips:simulate` drives a pretend van along today's first run and prints the map link.
+
+Not built: sending the position with the phone locked or the app put away. See the mobile README.
+
 ## Support
 
 Anyone in the app can write to TrustRide from the Help screen. Operators work the queue in the console under Support > Queue.
@@ -319,5 +342,6 @@ An action or checklist used on two screens goes in a class of its own, like `Mod
 - Push notifications in the app, and letting a rider choose her channel (task R5).
 - Automatic deletion of riders who have gone quiet (task H1). Deletion on request works.
 - Trips, live location and the driver and mate screens (Phase 7).
-- WhatsApp messages arriving in the support queue by themselves, and the trip share link (rest of Phase 6).
+- WhatsApp messages arriving in the support queue by themselves.
+- Background location (D1, D9), the driver's commission screen (D8), and using pickups for the no-show policy.
 - Deploy pipeline and backups (task F8).

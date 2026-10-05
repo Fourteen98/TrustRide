@@ -4,38 +4,101 @@
  */
 
 export interface paths {
-    "/driver/v1/home": {
+    "/driver/v1/today": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @constant */
-                            screens: "driver";
-                        };
-                    };
-                };
-                401: components["responses"]["AuthenticationException"];
-            };
-        };
+        /**
+         * Today's runs with the riders at each stop
+         * @description One call for the whole crew screen. Ask again after every action, and every so often while a trip runs.
+         */
+        get: operations["crew.today"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/driver/v1/trip/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start today's trip
+         * @description Everyone riding today is told the van has set off. Pressing it twice is harmless.
+         */
+        post: operations["crew.start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/driver/v1/trip/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End today's trip
+         * @description The van's position stops being shown to riders.
+         */
+        post: operations["crew.end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/driver/v1/trip/pickups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a rider picked up or not at her stop
+         * @description Can be changed while the trip runs. Marking anyone at a stop also moves the van to that stop.
+         */
+        post: operations["crew.pickup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/driver/v1/trip/location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send the van's position
+         * @description Up to 200 positions at once, so a phone that lost its network can send what it saved.
+         *     Send from both the driver's and the mate's phone. The newest one wins.
+         */
+        post: operations["crew.location"];
         delete?: never;
         options?: never;
         head?: never;
@@ -274,6 +337,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rider/v1/trips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where her van is today
+         * @description One entry for each of her seats that runs today. Ask again every 10 to 15 seconds while a trip is running.
+         *     `stops_away` comes from the route's stop order, so it needs no map and no paid routing service.
+         */
+        get: operations["trip.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rider/v1/absences/preview": {
         parameters: {
             query?: never;
@@ -434,6 +518,11 @@ export interface components {
             /** @description True if her subscription was made a day longer */
             credited: boolean;
         };
+        /**
+         * PickupStatus
+         * @enum {string}
+         */
+        PickupStatus: "picked_up" | "missed";
         /** PlanResource */
         PlanResource: {
             id: number;
@@ -541,6 +630,269 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "crew.today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        runs: {
+                            run_id: number;
+                            route: string;
+                            /** @enum {string} */
+                            direction: "outbound" | "return";
+                            /** @description "06:30" */
+                            departs_at: string;
+                            car_number: string;
+                            driver_name: string;
+                            /** @enum {string} */
+                            status: "not_started" | "running" | "ended";
+                            started_at: string | null;
+                            /** @description Stops in the order the van reaches them, each with who gets on there today */
+                            stops: {
+                                stop_id: number;
+                                name: string;
+                                landmark: string | null;
+                                time: string | null;
+                                reached: boolean;
+                                riders: {
+                                    rider_id: number;
+                                    name: string;
+                                    absent: boolean;
+                                    /** @enum {string|null} */
+                                    pickup: "picked_up" | "missed" | null;
+                                }[];
+                            }[];
+                        }[];
+                        /** @description Seconds between positions the phone should send while a trip is running */
+                        ping_interval_seconds: number;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "crew.start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    run_id: number;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        run: {
+                            run_id: number;
+                            route: string;
+                            /** @enum {string} */
+                            direction: "outbound" | "return";
+                            /** @description "06:30" */
+                            departs_at: string;
+                            car_number: string;
+                            driver_name: string;
+                            /** @enum {string} */
+                            status: "not_started" | "running" | "ended";
+                            started_at: string | null;
+                            /** @description Stops in the order the van reaches them, each with who gets on there today */
+                            stops: {
+                                stop_id: number;
+                                name: string;
+                                landmark: string | null;
+                                time: string | null;
+                                reached: boolean;
+                                riders: {
+                                    rider_id: number;
+                                    name: string;
+                                    absent: boolean;
+                                    /** @enum {string|null} */
+                                    pickup: "picked_up" | "missed" | null;
+                                }[];
+                            }[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "crew.end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    run_id: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        run: {
+                            run_id: number;
+                            route: string;
+                            /** @enum {string} */
+                            direction: "outbound" | "return";
+                            /** @description "06:30" */
+                            departs_at: string;
+                            car_number: string;
+                            driver_name: string;
+                            /** @enum {string} */
+                            status: "not_started" | "running" | "ended";
+                            started_at: string | null;
+                            /** @description Stops in the order the van reaches them, each with who gets on there today */
+                            stops: {
+                                stop_id: number;
+                                name: string;
+                                landmark: string | null;
+                                time: string | null;
+                                reached: boolean;
+                                riders: {
+                                    rider_id: number;
+                                    name: string;
+                                    absent: boolean;
+                                    /** @enum {string|null} */
+                                    pickup: "picked_up" | "missed" | null;
+                                }[];
+                            }[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "crew.pickup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    run_id: number;
+                    rider_id: number;
+                    status: components["schemas"]["PickupStatus"];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        run: {
+                            run_id: number;
+                            route: string;
+                            /** @enum {string} */
+                            direction: "outbound" | "return";
+                            /** @description "06:30" */
+                            departs_at: string;
+                            car_number: string;
+                            driver_name: string;
+                            /** @enum {string} */
+                            status: "not_started" | "running" | "ended";
+                            started_at: string | null;
+                            /** @description Stops in the order the van reaches them, each with who gets on there today */
+                            stops: {
+                                stop_id: number;
+                                name: string;
+                                landmark: string | null;
+                                time: string | null;
+                                reached: boolean;
+                                riders: {
+                                    rider_id: number;
+                                    name: string;
+                                    absent: boolean;
+                                    /** @enum {string|null} */
+                                    pickup: "picked_up" | "missed" | null;
+                                }[];
+                            }[];
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "crew.location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    run_id: number;
+                    pings: {
+                        latitude: number;
+                        longitude: number;
+                        /** @description Metres */
+                        accuracy?: number | null;
+                        /**
+                         * Format: date-time
+                         * @description When the phone took the reading, ISO 8601
+                         */
+                        recorded_at: string;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description How many were kept. 0 with `running: false` means stop sending. */
+                        kept: number;
+                        running: boolean;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
     "auth.requestCode": {
         parameters: {
             query?: never;
@@ -923,6 +1275,61 @@ export interface operations {
             };
             401: components["responses"]["AuthenticationException"];
             422: components["responses"]["ValidationException"];
+        };
+    };
+    "trip.index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        trips: {
+                            route: string;
+                            car_number: string;
+                            my_stop: string;
+                            /** @description When the van is due at her stop, "06:38" */
+                            my_time: string | null;
+                            /** @enum {string} */
+                            status: "not_started" | "running" | "ended";
+                            /** @description Stops between the van and her. 0 means it is at her stop or has passed it. Null unless running.. 0 means the van is at her stop or has passed it. Before the first stop is reached it counts from the start. */
+                            stops_away: number | null;
+                            /**
+                             * @description What the mate marked for her today
+                             * @enum {string|null}
+                             */
+                            pickup: "picked_up" | "missed" | null;
+                            /** @description Only while the trip is running. The position is only given out while the trip is running. */
+                            position: {
+                                latitude: number;
+                                longitude: number;
+                                at: string;
+                                live: boolean;
+                            } | null;
+                            stops: {
+                                id: number;
+                                name: string;
+                                landmark: string | null;
+                                time: string | null;
+                                latitude: number | null;
+                                longitude: number | null;
+                                reached: boolean;
+                            }[];
+                            /** @description A web page with the live map. She can open it or send it to someone. It stops showing the van when the trip ends. */
+                            map_url: string | null;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
         };
     };
     "absence.preview": {

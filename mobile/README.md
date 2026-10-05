@@ -145,3 +145,15 @@ Don't add `expo-location` or any location permission until release 2.
 ## Help
 
 `src/app/(app)/help.tsx` is the same for every role. The link sits in the home header for any account with the `support.alert.raise` permission. The screen asks the server every 10 seconds while a case is open, so a reply from staff appears by itself.
+
+## Driver and mate
+
+`src/screens/crew-home.tsx` is home for both. The driver starts and ends the trip, the mate marks each rider on board or not here, and both phones send the van's position (`src/crew/use-location-sender.ts`).
+
+**The position is only sent while the crew screen is open and the phone is unlocked.** That is the part that works in Expo Go. Sending with the screen off needs `expo-task-manager`, a development build, a permanent notification, battery saving switched off on each phone, and Google Play's approval for background location. That is tasks D1 and D9, and D1 says to test it on the crew's real phones for a full morning before building further.
+
+`expo-location` adds the location permission to the whole app. If release 1 must ship with no location permission, add the location permissions to `android.blockedPermissions` in `app.json` for that build.
+
+## The map
+
+`src/app/(app)/trip.tsx` shows the backend's own map page inside the app (`src/components/web-page.tsx`, a WebView on phones and an iframe on the web build). There is no map SDK and no map key in the app.

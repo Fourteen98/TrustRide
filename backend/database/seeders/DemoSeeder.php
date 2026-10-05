@@ -50,14 +50,15 @@ class DemoSeeder extends Seeder
 
         $admin = Staff::query()->firstOrFail();
 
+        // The pins are rough, for the demo map only. Set real ones in Network > Stops.
         $stops = collect([
-            ['Barrier', 'By the toll booth', 0],
-            ['Old Barrier', 'Opposite the filling station', 8],
-            ['Mallam Junction', 'Under the footbridge', 20],
-            ['Kaneshie', 'First Light', 35],
-            ['Circle', 'Odo Rise', 50],
+            ['Barrier', 'By the toll booth', 0, 5.5560, -0.3340],
+            ['Old Barrier', 'Opposite the filling station', 8, 5.5601, -0.3138],
+            ['Mallam Junction', 'Under the footbridge', 20, 5.5700, -0.2870],
+            ['Kaneshie', 'First Light', 35, 5.5665, -0.2370],
+            ['Circle', 'Odo Rise', 50, 5.5700, -0.2075],
         ])->map(fn (array $stop) => [
-            'stop' => Stop::query()->create(['name' => $stop[0], 'landmark' => $stop[1], 'area' => 'Demo']),
+            'stop' => Stop::query()->create(['name' => $stop[0], 'landmark' => $stop[1], 'area' => 'Demo', 'latitude' => $stop[3], 'longitude' => $stop[4]]),
             'minutes' => $stop[2],
         ]);
 

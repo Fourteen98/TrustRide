@@ -16,7 +16,7 @@ it('shows the API docs to logged-in staff', function () {
 
     $document = $this->get('/docs/api.json')->assertOk()->json();
 
-    expect($document['paths'])->toHaveKeys(['/auth/code', '/auth/verify', '/auth/me', '/rider/v1/home', '/driver/v1/home'])
+    expect($document['paths'])->toHaveKeys(['/auth/code', '/auth/verify', '/auth/me', '/rider/v1/home', '/driver/v1/today'])
         ->and($document['paths']['/auth/verify']['post']['tags'])->toBe(['Login'])
         ->and($document['paths']['/rider/v1/home']['get']['tags'])->toBe(['Rider'])
         // Login is public. Everything else needs the bearer token.

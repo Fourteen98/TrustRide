@@ -9,6 +9,7 @@ export type Seat = components['schemas']['SeatResource'];
 export type Subscription = components['schemas']['SubscriptionResource'];
 export type Application = components['schemas']['ApplicationResource'];
 export type Plan = components['schemas']['PlanResource'];
+export type RiderTrip = paths['/rider/v1/trips']['get']['responses'][200]['content']['application/json']['trips'][number];
 export type Purchase = components['schemas']['PurchaseResource'];
 export type PlanChoices = paths['/rider/v1/plans']['get']['responses'][200]['content']['application/json'];
 export type Network = PlanChoices['networks'][number];
@@ -33,6 +34,8 @@ export const riderApi = {
   pay: async (body: NewPurchase) => (await call(() => api.POST('/rider/v1/purchase', { body }))).purchase,
   /** Her latest payment, for asking again while it is pending. */
   purchase: async () => (await call(() => api.GET('/rider/v1/purchase'))).purchase,
+  /** Where her van is today. One entry for each seat that runs today. */
+  trips: async () => (await call(() => api.GET('/rider/v1/trips'))).trips,
   previewNotice: (date: string) => call(() => api.GET('/rider/v1/absences/preview', { params: { query: { date } } })),
   giveNotice: (date: string) => call(() => api.POST('/rider/v1/absences', { body: { date } })),
   requestDeletion: () => call(() => api.POST('/rider/v1/data-deletion')),

@@ -111,13 +111,13 @@ it('keeps a rider out of driver routes and lets a mate who is also a rider into 
 
     $riderToken = $rider->createToken('test')->plainTextToken;
     $this->withToken($riderToken)->getJson('/api/rider/v1/home')->assertOk();
-    $this->withToken($riderToken)->getJson('/api/driver/v1/home')->assertForbidden();
+    $this->withToken($riderToken)->getJson('/api/driver/v1/today')->assertForbidden();
 
     $this->app['auth']->forgetGuards();
 
     $bothToken = $both->createToken('test')->plainTextToken;
     $this->withToken($bothToken)->getJson('/api/rider/v1/home')->assertOk();
-    $this->withToken($bothToken)->getJson('/api/driver/v1/home')->assertOk();
+    $this->withToken($bothToken)->getJson('/api/driver/v1/today')->assertOk();
 
     expect($both->getAllPermissions()->pluck('name'))->toContain('trips.pickups.mark', 'subscriptions.buy');
 });

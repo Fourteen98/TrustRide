@@ -39,7 +39,13 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "TrustRide uses your location while you run a trip, so riders can see where the van is."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

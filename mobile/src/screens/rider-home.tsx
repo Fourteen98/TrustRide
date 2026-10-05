@@ -13,6 +13,7 @@ import { Spacing } from '@/constants/theme';
 import { useAction } from '@/hooks/use-action';
 import { useLoader } from '@/hooks/use-loader';
 import { clock, longDate, shortDate } from '@/lib/dates';
+import { TodaysTrips } from '@/rider/trip-card';
 import { riderApi, type RiderHome as HomeData } from '@/rider/api';
 import { SeatCard } from '@/rider/seat-card';
 
@@ -84,6 +85,8 @@ function Content({ home, reload }: { home: HomeData; reload: () => void }) {
           <Button label="Apply for a seat" onPress={() => router.push('/apply')} />
         </Card>
       ) : null}
+
+      {can('trips.follow') && subscription ? <TodaysTrips /> : null}
 
       {seats.map((seat) => (
         <SeatCard key={seat.id} seat={seat} />

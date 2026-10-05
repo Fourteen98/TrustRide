@@ -6,6 +6,7 @@ use App\Api\Rider\DataDeletionController;
 use App\Api\Rider\HomeController;
 use App\Api\Rider\PlanController;
 use App\Api\Rider\PurchaseController;
+use App\Api\Rider\TripController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -29,6 +30,8 @@ Route::prefix('rider/v1')->middleware('auth:app')->group(function () {
         Route::post('purchase', [PurchaseController::class, 'store'])->middleware('throttle:10,1');
         Route::get('purchase', [PurchaseController::class, 'show']);
     });
+
+    Route::get('trips', [TripController::class, 'index'])->middleware('permission:trips.follow,app');
 
     Route::middleware('permission:subscriptions.absence.give,app')->group(function () {
         Route::get('absences/preview', [AbsenceController::class, 'preview']);
