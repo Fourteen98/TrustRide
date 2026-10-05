@@ -157,3 +157,21 @@ Don't add `expo-location` or any location permission until release 2.
 ## The map
 
 `src/app/(app)/trip.tsx` shows the backend's own map page inside the app (`src/components/web-page.tsx`, a WebView on phones and an iframe on the web build). There is no map SDK and no map key in the app.
+
+## Seeing the real app, with the logo and splash
+
+Expo Go shows its own icon and splash, so the TrustRide ones never appear there. To see the app as it will ship, make a build on your Mac. It needs Xcode and nothing else: no Expo account and no Apple developer account for the simulator.
+
+```
+npx expo run:ios
+```
+
+The first run takes several minutes. It creates an `ios` folder from `app.json` (not kept in git), builds the app, installs it on the simulator and opens it. After that, run `npx expo start` and open the TrustRide app from the simulator's home screen. Expo Go is still there next to it, and pressing `i` still opens Expo Go.
+
+Run it again whenever `app.json` or a package with native code changes (a new icon, `expo-location`, and so on). Ordinary screen changes don't need it.
+
+For Android the same thing is `npx expo run:android`, which needs Android Studio. A real iPhone needs an Apple developer account.
+
+## Driver's commission
+
+`src/app/(app)/earnings.tsx`. Drivers only. It shows the monthly commission TrustRide pays and the last twelve months: assessment, bonus, and whether it was paid.

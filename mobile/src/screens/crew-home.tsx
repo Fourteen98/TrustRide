@@ -1,8 +1,11 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { useAuth } from '@/auth/auth-context';
+import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Loadable } from '@/components/loadable';
+import { MutedText } from '@/components/muted-text';
 import { crewApi, type CrewRun } from '@/crew/api';
 import { RunCard } from '@/crew/run-card';
 import { useLocationSender } from '@/crew/use-location-sender';
@@ -15,6 +18,7 @@ import { usePoll } from '@/hooks/use-poll';
  * and both phones send the van's position while a trip is running.
  */
 export function CrewHome() {
+  const router = useRouter();
   const { can } = useAuth();
   const state = useLoader(crewApi.today);
   // Runs as the server last described them, after a button here or a poll. Until then, what the screen loaded with.
@@ -40,22 +44,27 @@ export function CrewHome() {
 
   return (
     <Loadable state={state}>
-      {() =>
-        runs.length === 0 ? (
-          <Card title="No run today">You have no run today. If that is wrong, tell TrustRide under Help.</Card>
-        ) : (
-          <>
-            {runs.map((run) => (
-              <RunCard
-                key={run.run_id}
-                run={run}
-                onChange={(next) => setChanged((current) => ({ ...current, [next.run_id]: next }))}
-                sender={run.run_id === running?.run_id && can('trips.location.send') ? sender : undefined}
-              />
-            ))}
-          </>
-        )
-      }
+      {() => (
+        <>
+          {runs.length === 0 ? <Card title="No run today">You have no run today. If that is wrong, tell TrustRide under Help.</Card> : null}
+
+          {runs.map((run) => (
+            <RunCard
+              key={run.run_id}
+              run={run}
+              onChange={(next) => setChanged((current) => ({ ...current, [next.run_id]: next }))}
+              sender={run.run_id === running?.run_id && can('trips.location.send') ? sender : undefined}
+            />
+          ))}
+
+          {can('drivers.commission.view') ? (
+            <Card title="Commission">
+              <MutedText>What TrustRide pays you each month, and how each month was assessed.</MutedText>
+              <Button label="See my commission" variant="plain" onPress={() => router.push('/earnings')} />
+            </Card>
+          ) : null}
+        </>
+      )}
     </Loadable>
   );
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Api\Driver\CrewController;
+use App\Api\Driver\EarningsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,5 +19,6 @@ Route::prefix('driver/v1')->middleware('auth:app')->group(function () {
     });
 
     Route::post('trip/pickups', [CrewController::class, 'pickup'])->middleware('permission:trips.pickups.mark,app');
+    Route::get('earnings', [EarningsController::class, 'show'])->middleware('permission:drivers.commission.view,app');
     Route::post('trip/location', [CrewController::class, 'location'])->middleware('permission:trips.location.send,app');
 });

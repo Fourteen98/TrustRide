@@ -16,3 +16,10 @@ export const crewApi = {
     (await call(() => api.POST('/driver/v1/trip/pickups', { body: { run_id, rider_id, status } }))).run,
   sendLocation: (run_id: number, pings: Ping[]) => call(() => api.POST('/driver/v1/trip/location', { body: { run_id, pings } })),
 };
+
+export type Earnings = paths['/driver/v1/earnings']['get']['responses'][200]['content']['application/json'];
+
+/** The driver's own commission. Mates have none. */
+export const earningsApi = {
+  show: () => call(() => api.GET('/driver/v1/earnings')),
+};

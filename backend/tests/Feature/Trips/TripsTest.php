@@ -4,7 +4,11 @@ use Filament\Facades\Filament;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Modules\Access\Models\Account;
+use Modules\Access\Models\Staff;
+use Modules\Drivers\Actions\MarkStatementPaid;
+use Modules\Drivers\Actions\RecordAssessment;
 use Modules\Drivers\Actions\RegisterMate;
+use Modules\Drivers\Enums\AssessmentOutcome;
 use Modules\Messaging\Models\Message;
 use Modules\Riders\Models\Rider;
 use Modules\Subscriptions\Actions\ActivateSubscription;
@@ -257,4 +261,25 @@ it('gives the day back for a missed pickup only when her plan says so, and takes
 
     expect($amaSub->fresh())->ends_on->toEqual($amaEnds)->credited_days->toBe(0)
         ->and(AbsenceNotice::count())->toBe(0);
+});
+
+it('shows a driver his commission and assessments, and nobody else', function () {
+    $driver = $this->network['driver'];
+    $admin = staff(Staff::SUPER_ADMIN);
+
+    phone($this->driver)->getJson('/api/driver/v1/earnings')->assertOk()
+        ->assertJsonPath('monthly_commission_label', 'GHS 300')->assertJsonPath('months', []);
+
+    $september = app(RecordAssessment::class)->handle($driver, Carbon::parse('2026-09-01'), AssessmentOutcome::Met, $admin, 'On time every day.', 5000);
+    app(MarkStatementPaid::class)->handle($september, $admin, 'MoMo 12345');
+    app(RecordAssessment::class)->handle($driver, Carbon::parse('2026-10-01'), AssessmentOutcome::NotMet, $admin);
+
+    $months = phone($this->driver)->getJson('/api/driver/v1/earnings')->assertOk()->json('months');
+
+    expect($months)->toHaveCount(2)
+        ->and($months[0])->toMatchArray(['month' => 'October 2026', 'assessment' => 'not_met', 'paid' => false, 'bonus_label' => null, 'total_label' => 'GHS 300'])
+        ->and($months[1])->toMatchArray(['month' => 'September 2026', 'assessment' => 'met', 'paid' => true, 'bonus_label' => 'GHS 50', 'total_label' => 'GHS 350', 'assessment_notes' => 'On time every day.'])
+        ->and(json_encode($months))->not->toContain('MoMo 12345'); // the payment reference is ours, not his
+
+    phone($this->mate)->getJson('/api/driver/v1/earnings')->assertForbidden();
 });

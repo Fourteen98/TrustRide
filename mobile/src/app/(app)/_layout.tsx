@@ -8,6 +8,7 @@ export default function AppLayout() {
       <Stack.Screen name="plans" options={{ title: 'Plans' }} />
       <Stack.Screen name="not-riding" options={{ title: 'Not riding' }} />
       <Stack.Screen name="trip" options={{ title: 'Your van' }} />
+      <Stack.Screen name="earnings" options={{ title: 'Commission' }} />
       <Stack.Screen name="help" options={{ title: 'Help' }} />
       <Stack.Screen name="account" options={{ title: 'Account', presentation: 'modal' }} />
     </Stack>
