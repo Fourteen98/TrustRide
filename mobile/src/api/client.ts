@@ -55,16 +55,26 @@ export function errorMessage(error: unknown, fallback = 'Something went wrong. T
   return fallback;
 }
 
+const TIMEOUT_SECONDS = 15;
+
 /** Runs a request and turns "the phone could not reach the server" into a readable error. */
 export async function call<T>(request: () => Promise<{ data?: T; error?: unknown }>): Promise<T> {
   let result: { data?: T; error?: unknown };
 
   try {
-    result = await request();
+    // A server that can't be reached often gives no error at all. The request just hangs.
+    // So nothing waits longer than this, and a button never spins for ever.
+    result = await Promise.race([
+      request(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`no answer in ${TIMEOUT_SECONDS} seconds`)), TIMEOUT_SECONDS * 1000)),
+    ]);
   } catch (cause) {
-    // The person gets a plain sentence. While developing, the real reason goes to the Expo terminal.
+    // The person gets a plain sentence. While developing, the real reason goes to the Expo terminal
+    // and the address is shown, because a wrong address is the usual cause.
     if (__DEV__) {
       console.warn(`[api] request failed against ${API_URL}:`, cause);
+
+      throw new Error(`Can't reach TrustRide at ${API_URL}. Is the backend running with --host=0.0.0.0, and is that still your computer's address?`);
     }
 
     throw new Error("Can't reach TrustRide. Check your connection and try again.");
