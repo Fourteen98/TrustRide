@@ -254,7 +254,8 @@ later          subscriptions:upkeep charges the day before her plan ends, throug
 
 - A mandate charge is an ordinary plan purchase, so the same code activates it and the same receipt goes out.
 - Three days before the end she is told what will be taken (`auto_renewal.upcoming`), instead of "renew to keep your seat".
-- The charge is tried once a day. Three failures in a row switch it off and she is told (`AUTO_RENEW_MAX_FAILURES`).
+- The charge is tried once a day. Three failures in a row switch it off and she is told.
+- **The numbers are settings staff can change**: Subscriptions > Plans > "Renewal and seat rules". Days of notice, days before the end the money is taken, failures before it is switched off, days a seat is kept after a plan ends, and days a reserved seat is held. It needs the `subscriptions.settings.manage` permission, which operators don't get by default. She can never be charged before she is told: the form refuses that.
 - She can stop it in the app at any time, and an operator can under Subscriptions > Automatic renewals. Only she can start one. Once it is stopped here it is never charged again, whatever the gateway says.
 - MTN and Telecel only. `debit_channel` in `modules/Payments/config.php` says which networks have it. The app hides the choice on the others.
 - **Unverified, like the prompt payment.** The Hubtel "preapproval" calls in `HubtelGateway` are written from Hubtel's published format and have never been run against Hubtel. Hubtel may also need direct debit switched on for the merchant account. Ask them.
@@ -304,6 +305,12 @@ POST /api/support/v1/messages   {message, category?}
 ```
 
 Not built: the trip share link page (S3). It needs Trips.
+
+## Settings staff can change
+
+`App\Support\Settings` keeps a `settings` table of config names and values. At start-up each saved row replaces the config value of the same name, so code goes on reading `config('subscriptions.seat_grace_days')` and never knows the difference. A setting nobody has saved keeps its value from the config file or `.env`.
+
+To make another number editable: add it to a module's `config.php`, save it with `Settings::save([...])` from a module Action that checks it, and put a field on a console form. `SaveSubscriptionSettings` is the example.
 
 ## What the console does today
 

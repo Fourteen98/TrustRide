@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Support\Contracts\SmsSender;
 use App\Support\LogSmsSender;
 use App\Support\ModuleRegistry;
+use App\Support\Settings;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -20,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        // Settings staff saved in the console replace the config values of the same name.
+        Settings::apply();
     }
 }

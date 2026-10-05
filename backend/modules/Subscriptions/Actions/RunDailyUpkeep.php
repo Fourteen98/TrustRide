@@ -50,7 +50,10 @@ class RunDailyUpkeep
 
                 // "Renew to keep your seat" would be wrong for someone who renews by herself. She is told what will be taken.
                 $renewal
-                    ? AutoRenewalUpcoming::dispatch($renewal, ['ends_on_text' => $subscription->ends_on->format('j M Y')])
+                    ? AutoRenewalUpcoming::dispatch($renewal, [
+                        'ends_on_text' => $subscription->ends_on->format('j M Y'),
+                        'charge_on_text' => $subscription->ends_on->subDays((int) config('subscriptions.auto_renew_charge_days_before'))->format('j M'),
+                    ])
                     : SubscriptionExpiring::dispatch($subscription);
                 $counts['expiring']++;
             });

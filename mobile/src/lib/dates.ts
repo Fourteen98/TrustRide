@@ -57,3 +57,12 @@ export function weekdays(days: number[]): string {
 
   return consecutive && sorted.length > 2 ? `${names[0]} to ${names[names.length - 1]}` : names.join(', ');
 }
+
+/** When an automatic payment is taken, as words: "the day before your plan ends". */
+export function beforeTheEnd(days: number): string {
+  if (days <= 0) {
+    return 'on the day your plan ends';
+  }
+
+  return days === 1 ? 'the day before your plan ends' : `${days} days before your plan ends`;
+}

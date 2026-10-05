@@ -29,6 +29,8 @@ class AutoRenewalResource extends JsonResource
             'network' => config('payments.networks.'.$this->mandate?->network.'.label', ''),
             /** The last four digits of the wallet */
             'wallet' => $this->mandate?->phone ? substr($this->mandate->phone, -4) : '',
+            /** How many days before her plan ends the money is taken. 0 is the last day itself. */
+            'charge_days_before' => (int) config('subscriptions.auto_renew_charge_days_before'),
             /** @var bool True if she must type a code she was texted. Send it to `POST auto-renewal/code`. */
             'needs_code' => $otp,
             /** The letters before the dash in the code she was texted, to show next to the field */

@@ -18,6 +18,8 @@ class PlanController
     {
         return response()->json([
             'plans' => PlanResource::collection(Plan::query()->where('is_active', true)->orderBy('duration_days')->get()),
+            /** How many days before a plan ends an automatic payment is taken, to say so before she agrees */
+            'auto_renew_charge_days_before' => (int) config('subscriptions.auto_renew_charge_days_before'),
             'networks' => collect(config('payments.networks'))->map(fn (array $network, string $key) => ['key' => $key, 'label' => $network['label'], 'automatic' => (bool) $network['debit_channel']])->values()->all(),
         ]);
     }

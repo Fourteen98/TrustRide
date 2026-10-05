@@ -62,7 +62,7 @@ export default function PlansScreen() {
   return (
     <Screen edges={['bottom']}>
       <Loadable state={state}>
-        {({ plans, networks }) => {
+        {({ plans, networks, auto_renew_charge_days_before }) => {
           if (!home) {
             return null;
           }
@@ -112,7 +112,7 @@ export default function PlansScreen() {
           return (
             <>
               {declined ? <Notice text="The direct debit was not approved, so nothing was taken. Try again, or pay just this time." /> : null}
-              <PayForm plans={plans} networks={networks} defaultPhone={account?.phone ?? ''} onStarted={begin} />
+              <PayForm plans={plans} networks={networks} defaultPhone={account?.phone ?? ''} chargeDaysBefore={auto_renew_charge_days_before} onStarted={begin} />
             </>
           );
         }}

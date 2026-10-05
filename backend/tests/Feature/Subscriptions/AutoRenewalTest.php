@@ -1,7 +1,9 @@
 <?php
 
+use App\Support\Settings;
 use Filament\Facades\Filament;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
@@ -24,6 +26,7 @@ use Modules\Subscriptions\Actions\ApproveApplicationWithSeats;
 use Modules\Subscriptions\Actions\RunDailyUpkeep;
 use Modules\Subscriptions\Enums\AutoRenewalStatus;
 use Modules\Subscriptions\Filament\Resources\AutoRenewalResource\Pages\ManageAutoRenewals;
+use Modules\Subscriptions\Filament\Resources\PlanResource\Pages\ManagePlans;
 use Modules\Subscriptions\Models\AutoRenewal;
 use Modules\Subscriptions\Models\Plan;
 use Modules\Subscriptions\Models\Subscription;
@@ -265,4 +268,50 @@ it('closes a direct debit request nobody answered', function () {
 
     expect(PaymentMandate::query()->sole()->status)->toBe(MandateStatus::Failed)
         ->and(AutoRenewal::query()->sole()->status)->toBe(AutoRenewalStatus::Off);
+});
+
+it('lets staff change the renewal rules in the console, and the nightly run follows them', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    $page = ManagePlans::class;
+    $rules = ['expiring_notice_days' => 5, 'auto_renew_charge_days_before' => 2, 'auto_renew_max_failures' => 1, 'seat_grace_days' => 3, 'reservation_days' => 7];
+
+    // Operators can't. It is in the pricing group, which they don't get by default.
+    $this->actingAs($this->operator, 'platform');
+    Livewire::test($page)->assertActionHidden('rules');
+
+    $this->actingAs(staff(Staff::SUPER_ADMIN), 'platform');
+    Livewire::test($page)->mountAction('rules')->assertSchemaStateSet(['auto_renew_charge_days_before' => 1, 'expiring_notice_days' => 3]);
+
+    // She must be told before the money is taken.
+    Livewire::test($page)->callAction('rules', [...$rules, 'auto_renew_charge_days_before' => 6]);
+    expect(config('subscriptions.auto_renew_charge_days_before'))->toBe(1);
+
+    Livewire::test($page)->callAction('rules', $rules)->assertHasNoActionErrors();
+    expect(config('subscriptions.auto_renew_charge_days_before'))->toBe(2)
+        ->and(DB::table('settings')->where('key', 'subscriptions.expiring_notice_days')->value('changed_by'))->toBe('Test Staff');
+
+    // A fresh start of the app picks the saved values up over the config file's.
+    config(['subscriptions.auto_renew_charge_days_before' => 1]);
+    Settings::apply();
+    expect(config('subscriptions.auto_renew_charge_days_before'))->toBe(2);
+
+    setUpAuto();
+    approveMandate();
+    moneyArrives();
+    $ends = Subscription::query()->sole()->ends_on;
+
+    $this->travelTo($ends->subDays(5)->setTime(0, 10));
+    app(RunDailyUpkeep::class)->handle();
+    expect(Message::query()->where('body', 'like', '% on '.$ends->subDays(2)->format('j M').' to renew it%')->count())->toBe(1);
+
+    $this->travelTo($ends->subDays(3)->setTime(0, 10));
+    expect(app(RunDailyUpkeep::class)->handle()['charged'])->toBe(0);
+
+    $this->travelTo($ends->subDays(2)->setTime(0, 10));
+    expect(app(RunDailyUpkeep::class)->handle()['charged'])->toBe(1);
+
+    moneyArrives(false); // one failure is now enough
+    expect(AutoRenewal::query()->sole()->status)->toBe(AutoRenewalStatus::Off);
+
+    $this->getJson('/api/rider/v1/plans')->assertJsonPath('auto_renew_charge_days_before', 2);
 });

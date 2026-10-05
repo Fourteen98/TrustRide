@@ -9,6 +9,7 @@ import { TextField } from '@/components/text-field';
 import { Spacing } from '@/constants/theme';
 import { useAction } from '@/hooks/use-action';
 import { useTheme } from '@/hooks/use-theme';
+import { beforeTheEnd } from '@/lib/dates';
 
 import { riderApi, type AutoRenewal } from './api';
 
@@ -66,7 +67,7 @@ export function AutoRenewalLine({ renewal, onStopped }: { renewal: AutoRenewal; 
   return (
     <View style={{ gap: Spacing.two }}>
       <MutedText>
-        Renews by itself: {renewal.amount_label} from {renewal.network} ending {renewal.wallet}, the day before it ends.
+        Renews by itself: {renewal.amount_label} from {renewal.network} ending {renewal.wallet}, {beforeTheEnd(renewal.charge_days_before)}.
       </MutedText>
       <Notice text={action.error} />
       {confirming ? (

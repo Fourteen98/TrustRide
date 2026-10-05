@@ -7,6 +7,7 @@ import { MutedText } from '@/components/muted-text';
 import { Notice } from '@/components/notice';
 import { TextField } from '@/components/text-field';
 import { useAction } from '@/hooks/use-action';
+import { beforeTheEnd } from '@/lib/dates';
 import { looksLikeGhanaPhone } from '@/lib/phone';
 
 import { riderApi, type Network, type Plan } from './api';
@@ -16,12 +17,14 @@ type Props = {
   networks: Network[];
   /** The number she logs in with. The prompt goes there unless she types another. */
   defaultPhone: string;
+  /** How many days before the end an automatic payment is taken. Set by TrustRide, so it is said before she agrees. */
+  chargeDaysBefore: number;
   /** Called once the prompt, or the direct debit request, has gone to her phone. */
   onStarted: (how: 'once' | 'auto') => void;
 };
 
 /** Pick a plan, pick a network, confirm the wallet number, pay. */
-export function PayForm({ plans, networks, defaultPhone, onStarted }: Props) {
+export function PayForm({ plans, networks, defaultPhone, chargeDaysBefore, onStarted }: Props) {
   const [planId, setPlanId] = useState<number | null>(plans.length === 1 ? plans[0].id : null);
   const [network, setNetwork] = useState<Network['key'] | null>(null);
   const [phone, setPhone] = useState(defaultPhone);
@@ -81,7 +84,7 @@ export function PayForm({ plans, networks, defaultPhone, onStarted }: Props) {
           {canAuto ? (
             <Choice
               label="Automatically, each time it ends"
-              detail={`Approve once. We take ${plan?.price_label ?? 'the price'} from this number the day before your plan ends, and tell you first. Stop it any time.`}
+              detail={`Approve once. We take ${plan?.price_label ?? 'the price'} from this number ${beforeTheEnd(chargeDaysBefore)}, and tell you first. Stop it any time.`}
               selected={auto}
               onPress={() => setHow('auto')}
             />

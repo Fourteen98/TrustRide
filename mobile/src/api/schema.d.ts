@@ -84,6 +84,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/driver/v1/earnings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The driver's commission and assessments
+         * @description What TrustRide pays him each month, and the last twelve months: how he was assessed and whether
+         *     he has been paid. This is the commission only. Fares never pass through TrustRide.
+         */
+        get: operations["earnings.show"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/driver/v1/trip/location": {
         parameters: {
             query?: never;
@@ -570,6 +591,8 @@ export interface components {
             network: string;
             /** @description The last four digits of the wallet */
             wallet: string;
+            /** @description How many days before her plan ends the money is taken. 0 is the last day itself. */
+            charge_days_before: number;
             /** @description True if she must type a code she was texted. Send it to `POST auto-renewal/code`. */
             needs_code: boolean;
             /** @description The letters before the dash in the code she was texted, to show next to the field */
@@ -944,6 +967,46 @@ export interface operations {
             422: components["responses"]["ValidationException"];
         };
     };
+    "earnings.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description What he is paid for a month as things stand, e.g. "GHS 300" */
+                        monthly_commission_label: string;
+                        months: {
+                            /** @description e.g. "September 2026" */
+                            month: string;
+                            commission_label: string;
+                            /** @description A bonus on top, if there was one */
+                            bonus_label: string | null;
+                            total_label: string;
+                            /**
+                             * @description Null until the month has been assessed
+                             * @enum {string|null}
+                             */
+                            assessment: "met" | "not_met" | null;
+                            /** @description What the assessor wrote for him */
+                            assessment_notes: string | null;
+                            paid: boolean;
+                            paid_on: string | null;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
     "crew.location": {
         parameters: {
             query?: never;
@@ -1303,6 +1366,8 @@ export interface operations {
                 content: {
                     "application/json": {
                         plans: components["schemas"]["PlanResource"][];
+                        /** @description How many days before a plan ends an automatic payment is taken, to say so before she agrees */
+                        auto_renew_charge_days_before: number;
                         networks: {
                             key: string;
                             label: string;

@@ -50,6 +50,7 @@ class SubscriptionsServiceProvider extends ModuleServiceProvider
             ], defaultRoles: ['operator']),
             new PermissionGroupDefinition('subscriptions.plans', 'Plans and pricing', Scope::Platform, [
                 'subscriptions.plans.manage' => 'Change plans, prices and the no-show policy',
+                'subscriptions.settings.manage' => 'Change the renewal and seat rules',
             ]),
             new PermissionGroupDefinition('subscriptions.self', 'Own subscription', Scope::App, [
                 'subscriptions.buy' => 'Buy a subscription',

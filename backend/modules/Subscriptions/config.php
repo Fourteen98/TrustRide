@@ -2,7 +2,8 @@
 
 /*
  * Subscriptions settings. Read them as config('subscriptions.seat_grace_days').
- * These values were chosen because nothing was decided. Change them here.
+ * These are the starting values. Staff change them in the console under Subscriptions > Plans > Rules,
+ * and a value saved there replaces the one here.
  */
 return [
     // How many days a seat is kept after a subscription ends. After that it is free for someone else.
