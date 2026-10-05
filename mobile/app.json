@@ -45,6 +45,12 @@
         {
           "locationWhenInUsePermission": "TrustRide uses your location while you run a trip, so riders can see where the van is."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#B08D3C"
+        }
       ]
     ],
     "experiments": {

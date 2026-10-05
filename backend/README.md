@@ -263,6 +263,8 @@ later          subscriptions:upkeep charges the day before her plan ends, throug
 
 **In the console.** Subscriptions > Payments lists every charge. "Check status" asks the gateway now. "Settle by hand" needs the `payments.resolve` permission, which operators don't get by default, because it gives a rider a subscription without the gateway saying she paid.
 
+**App notifications.** Set `MESSAGING_PUSH_DRIVER=expo`. They go through Expo's push service and cost nothing, where every SMS costs money. The app registers each phone with `POST /api/auth/push-device` when it opens, and the first time that happens she is switched from SMS to app notifications. If she has no phone registered, or none accepts the notification, the message falls back to SMS, so nothing is lost. She can choose SMS again on the Account screen (`PUT /api/auth/preferred-channel`). Login codes always go by SMS. The app side needs a real build: see the mobile README.
+
 **Real SMS.** Set `MESSAGING_SMS_DRIVER=hubtel` and the `HUBTEL_SMS_` values. These are the SMS API keys, a different pair from the payment keys. Login codes and every message rule then go out as real texts.
 
 ## Trips and the live map

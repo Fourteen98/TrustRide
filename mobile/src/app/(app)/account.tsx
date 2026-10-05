@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useAuth } from '@/auth/auth-context';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { Choice } from '@/components/choice';
+import { ChoiceGroup } from '@/components/choice-group';
 import { Detail } from '@/components/detail';
 import { MutedText } from '@/components/muted-text';
 import { Notice } from '@/components/notice';
@@ -11,14 +13,31 @@ import { useAction } from '@/hooks/use-action';
 import { useLoader } from '@/hooks/use-loader';
 import { riderApi } from '@/rider/api';
 
+const channelLabels = { push: 'Notifications in the app', sms: 'SMS', whatsapp: 'WhatsApp' } as const;
+
 export default function AccountScreen() {
-  const { account, logout, can } = useAuth();
+  const { account, logout, can, preferChannel } = useAuth();
   const leave = useAction();
+  const reach = useAction();
 
   return (
     <Screen edges={['bottom']}>
       <Detail label="Phone number">{account?.phone ?? ''}</Detail>
       <Detail label="Roles">{account?.roles.map((role) => role.label ?? role.name).join(', ') || 'None yet'}</Detail>
+
+      {account && account.channels.length > 1 ? (
+        <ChoiceGroup title="How we reach you" hint="If this way fails we still try the others. Login codes always come by SMS.">
+          {account.channels.map((channel) => (
+            <Choice
+              key={channel}
+              label={channelLabels[channel]}
+              selected={account.preferred_channel === channel}
+              onPress={() => reach.run(() => preferChannel(channel))}
+            />
+          ))}
+        </ChoiceGroup>
+      ) : null}
+      <Notice text={reach.error} />
 
       <Button label="Log out" variant="plain" onPress={() => leave.run(logout)} loading={leave.busy} />
 

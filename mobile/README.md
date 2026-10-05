@@ -175,3 +175,17 @@ For Android the same thing is `npx expo run:android`, which needs Android Studio
 ## Driver's commission
 
 `src/app/(app)/earnings.tsx`. Drivers only. It shows the monthly commission TrustRide pays and the last twelve months: assessment, bonus, and whether it was paid.
+
+## App notifications
+
+`src/notifications/push.ts` asks for permission and gets this phone's push token. `src/auth/auth-context.tsx` sends it to the backend after login. The Account screen lets her choose between notifications and SMS once the backend has both switched on.
+
+Notifications can't work in Expo Go, a simulator or the web build. There the code does nothing and messages go by SMS. To turn them on for real:
+
+1. Make a free Expo account and link the project once: `npx eas init`. This writes a project id into `app.json`, which the push token needs.
+2. Android: make a free Firebase project, download `google-services.json` into `mobile/`, and set `"googleServicesFile": "./google-services.json"` under `android` in `app.json`. Upload the Firebase service account key in the Expo dashboard under the project's credentials.
+3. iPhone: needs a paid Apple developer account. Not needed for the pilot if the riders are on Android.
+4. Make a build on a real phone (`npx expo run:android` with Android Studio, or a cloud build with `npx eas build`).
+5. On the backend set `MESSAGING_PUSH_DRIVER=expo`.
+
+None of this has been run. The backend half is covered by tests against a faked Expo service. The phone half is written and type-checked only.

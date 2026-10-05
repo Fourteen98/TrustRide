@@ -25,6 +25,9 @@ class ChannelManager
             'hubtel' => $key === 'sms'
                 ? app(HubtelSmsChannel::class)
                 : throw new InvalidArgumentException("The hubtel driver only sends SMS, not {$key}."),
+            'expo' => $key === 'push'
+                ? app(ExpoPushChannel::class)
+                : throw new InvalidArgumentException("The expo driver only sends app notifications, not {$key}."),
             'null', null, '' => null,
             default => throw new InvalidArgumentException("Unknown messaging driver [{$driver}] for the {$key} channel."),
         };

@@ -5,6 +5,7 @@ namespace App\Api\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\Access\Models\Account;
+use Modules\Messaging\Channels\ChannelManager;
 
 /**
  * What the mobile app gets after login. It builds its home screen from "roles"
@@ -21,7 +22,10 @@ class AccountResource extends JsonResource
             'id' => $this->id,
             'phone' => $this->phone,
             'name' => $this->name,
+            /** @var 'push'|'sms'|'whatsapp' How she asked to be reached. The others are still tried if it fails. */
             'preferred_channel' => $this->preferred_channel,
+            /** @var list<'push'|'sms'|'whatsapp'> The ways of reaching her that are switched on at TrustRide, to offer as choices. */
+            'channels' => $this->channelsSetUp(),
             'roles' => $this->roles->map(fn ($role) => [
                 'name' => $role->name,
                 'label' => $role->label,
@@ -30,5 +34,13 @@ class AccountResource extends JsonResource
             /** @var list<string> Every permission the account holds, e.g. subscriptions.buy */
             'permissions' => $this->getAllPermissions()->pluck('name')->sort()->values(),
         ];
+    }
+
+    /** @return list<'push'|'sms'|'whatsapp'> */
+    private function channelsSetUp(): array
+    {
+        $channels = app(ChannelManager::class);
+
+        return array_values(array_filter(ChannelManager::CHANNELS, fn (string $key) => $channels->isSetUp($key)));
     }
 }

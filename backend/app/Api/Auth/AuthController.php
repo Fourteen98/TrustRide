@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Access\Actions\RequestLoginCode;
 use Modules\Access\Actions\VerifyLoginCode;
+use Modules\Messaging\Actions\RegisterPushDevice;
 
 /** Login for the mobile app. One login for every role. */
 class AuthController
@@ -69,6 +70,11 @@ class AuthController
      */
     public function logout(Request $request): JsonResponse
     {
+        // This phone stops getting her notifications. The app sends its push token if it has one.
+        if (is_string($request->input('push_token'))) {
+            app(RegisterPushDevice::class)->forget($request->input('push_token'));
+        }
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(status: 204);

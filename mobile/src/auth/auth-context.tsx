@@ -1,6 +1,9 @@
-import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode, useRef } from 'react';
+import { Platform } from 'react-native';
 
 import { api, call, setToken, setUnauthorisedHandler, type Account, type Role } from '@/api/client';
+
+import { getPushToken } from '@/notifications/push';
 
 import { getItem, removeItem, setItem } from './storage';
 
@@ -18,6 +21,8 @@ type AuthValue = {
   verifyCode: (phone: string, code: string) => Promise<void>;
   switchRole: (name: string) => Promise<void>;
   refresh: () => Promise<void>;
+  /** Choose how TrustRide reaches her: in the app, or by SMS. */
+  preferChannel: (channel: Account['preferred_channel']) => Promise<void>;
   logout: () => Promise<void>;
   /** For hiding buttons. The server still checks every request. */
   can: (permission: string) => boolean;
@@ -34,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>('loading');
   const [account, setAccount] = useState<Account | null>(null);
   const [activeRoleName, setActiveRoleName] = useState<string | null>(null);
+  const pushToken = useRef<string | null>(null);
 
   const signOutLocally = useCallback(async () => {
     setToken(null);
@@ -75,6 +81,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => setUnauthorisedHandler(null);
   }, [loadAccount, signOutLocally]);
 
+  // Once she is in, turn on app notifications for this phone if it can take them. Runs again each launch,
+  // because a push token can change. Failing here must never get in the way of using the app.
+  useEffect(() => {
+    if (status !== 'signedIn') {
+      return;
+    }
+
+    let stopped = false;
+
+    (async () => {
+      const token = await getPushToken();
+
+      if (!token || stopped) {
+        return;
+      }
+
+      pushToken.current = token;
+
+      try {
+        const data = await call(() => api.POST('/auth/push-device', { body: { token, platform: Platform.OS === 'ios' ? 'ios' : 'android' } }));
+
+        if (!stopped) {
+          setAccount(data.account);
+        }
+      } catch {
+        // No network right now. The next launch tries again.
+      }
+    })();
+
+    return () => {
+      stopped = true;
+    };
+  }, [status]);
+
   const requestCode = useCallback(async (phone: string) => {
     await call(() => api.POST('/auth/code', { body: { phone } }));
   }, []);
@@ -95,7 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await api.POST('/auth/logout');
+      // Naming this phone's push token stops her notifications coming here after she has left.
+      await api.POST('/auth/logout', { body: { push_token: pushToken.current } as never });
     } catch {
       // Logging out must work offline too.
     }
@@ -116,6 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyCode,
       switchRole,
       refresh: loadAccount,
+      preferChannel: async (channel) => setAccount((await call(() => api.PUT('/auth/preferred-channel', { body: { channel } }))).account),
       logout,
       can: (permission) => permissions.has(permission),
     };

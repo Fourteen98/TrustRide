@@ -9,6 +9,7 @@ return [
      *
      *   log    writes the message to storage/logs/laravel.log. Nothing leaves the building.
      *   hubtel real SMS through Hubtel. SMS channel only. Needs the hubtel_sms settings below.
+     *   expo   app notifications through Expo's push service. Push channel only. Free.
      *   null   the channel is not set up. Delivery skips it and falls back to the next one.
      *
      * A real provider is one class that implements Modules\Messaging\Channels\Channel,
@@ -18,6 +19,12 @@ return [
         'sms' => ['driver' => env('MESSAGING_SMS_DRIVER', 'log')],
         'whatsapp' => ['driver' => env('MESSAGING_WHATSAPP_DRIVER', 'null')],
         'push' => ['driver' => env('MESSAGING_PUSH_DRIVER', 'null')],
+    ],
+
+    // Expo's push service. The access token is only needed if "enhanced security" is switched on in the Expo account.
+    'expo_push' => [
+        'endpoint' => env('EXPO_PUSH_ENDPOINT', 'https://exp.host/--/api/v2/push/send'),
+        'access_token' => env('EXPO_ACCESS_TOKEN'),
     ],
 
     /*

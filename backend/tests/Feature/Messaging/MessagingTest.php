@@ -5,18 +5,21 @@ use Filament\Facades\Filament;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
+use Modules\Access\Models\Account;
 use Modules\Access\Models\Staff;
 use Modules\Messaging\Actions\ApplyRules;
 use Modules\Messaging\Actions\RenderTemplate;
 use Modules\Messaging\Actions\SendMessage;
 use Modules\Messaging\Channels\Channel;
 use Modules\Messaging\Channels\ChannelManager;
+use Modules\Messaging\Channels\ExpoPushChannel;
 use Modules\Messaging\Enums\MessageStatus;
 use Modules\Messaging\Filament\Resources\MessageResource\Pages\ManageMessages;
 use Modules\Messaging\Filament\Resources\MessageRuleResource\Pages\ManageMessageRules;
 use Modules\Messaging\Models\EventLog;
 use Modules\Messaging\Models\Message;
 use Modules\Messaging\Models\MessageRule;
+use Modules\Messaging\Models\PushDevice;
 use Modules\Riders\Actions\EraseRider;
 use Modules\Riders\Actions\RequestDataDeletion;
 use Modules\Subscriptions\Actions\ActivateSubscription;
@@ -271,4 +274,42 @@ it('sends real SMS through Hubtel when the SMS driver is hubtel, and reports a r
         && $request->hasHeader('Authorization', 'Basic '.base64_encode('sms-id:sms-secret')));
 
     expect(fn () => $manager->channel('sms')->send('+233241234567', 'Again'))->toThrow(RuntimeException::class, 'Invalid sender');
+});
+
+it('sends an app notification to every phone she is logged in on, and falls back to SMS when there is none', function () {
+    app(ChannelManager::class)->use('push', app(ExpoPushChannel::class));
+    app(ChannelManager::class)->use('whatsapp', null);
+    Http::fake(['exp.host/*' => Http::response(['data' => [
+        ['status' => 'ok', 'id' => 'a'],
+        ['status' => 'error', 'message' => 'gone', 'details' => ['error' => 'DeviceNotRegistered']],
+    ]])]);
+    $account = Account::create(['phone' => '+233240000077'])->assignRole('rider');
+    $this->withToken($account->createToken('t')->plainTextToken);
+
+    // Registering her first phone switches her to app notifications. The same phone again changes nothing.
+    $this->postJson('/api/auth/push-device', ['token' => 'not-a-token'])->assertStatus(422);
+    $this->postJson('/api/auth/push-device', ['token' => 'ExponentPushToken[one]', 'platform' => 'android'])->assertOk()
+        ->assertJsonPath('account.preferred_channel', 'push')->assertJsonPath('account.channels', ['sms', 'push']);
+    $this->postJson('/api/auth/push-device', ['token' => 'ExponentPushToken[one]'])->assertOk();
+    $this->postJson('/api/auth/push-device', ['token' => 'ExponentPushToken[old]'])->assertOk();
+    expect(PushDevice::count())->toBe(2);
+
+    event(testEvent([], [new Recipient('rider', '+233240000077', 'push', 'Ama')], 'account.registered'));
+    MessageRule::create(['name' => 'Hello', 'event_name' => 'test.hello', 'audience' => 'all', 'body' => 'Hello {name}']);
+    event(testEvent([], [new Recipient('rider', '+233240000077', 'push', 'Ama')], 'test.hello'));
+
+    $sent = Message::query()->where('body', 'Hello Ama')->sole();
+    expect($sent)->status->toBe(MessageStatus::Sent)->channel->toBe('push')
+        ->and($this->sms->sent)->toBeEmpty()
+        ->and(PushDevice::query()->pluck('token')->all())->toBe(['ExponentPushToken[one]']); // the dead phone was forgotten
+    Http::assertSent(fn ($request) => $request[0]['to'] === 'ExponentPushToken[one]' && $request[0]['body'] === 'Hello Ama' && $request[0]['title'] === 'TrustRide');
+
+    // She switches back to SMS. Then logs out of her only phone: a push-only attempt has nowhere to go, so SMS carries it.
+    $this->putJson('/api/auth/preferred-channel', ['channel' => 'sms'])->assertOk()->assertJsonPath('account.preferred_channel', 'sms');
+    $this->putJson('/api/auth/preferred-channel', ['channel' => 'pigeon'])->assertStatus(422);
+    $this->postJson('/api/auth/logout', ['push_token' => 'ExponentPushToken[one]'])->assertNoContent();
+    expect(PushDevice::count())->toBe(0);
+
+    event(testEvent([], [new Recipient('rider', '+233240000077', 'push', 'Ama')], 'test.hello'));
+    expect(Message::query()->where('body', 'Hello Ama')->latest('id')->first())->channel->toBe('sms')->status->toBe(MessageStatus::Sent);
 });

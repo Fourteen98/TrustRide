@@ -207,6 +207,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/push-device": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn on app notifications for this phone
+         * @description The app sends the token the push service gave it, each time it opens. The first time a phone is
+         *     registered, she is switched to app notifications, because they are free and SMS is not.
+         *     She can switch back with `PUT preferred-channel`. Login codes always come by SMS.
+         */
+        post: operations["notification.register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/preferred-channel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Choose how to be reached
+         * @description One of the `channels` on the account. If that way fails, the others are still tried.
+         */
+        put: operations["notification.prefer"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/support/v1/case": {
         parameters: {
             query?: never;
@@ -544,7 +586,13 @@ export interface components {
             id: number;
             phone: string;
             name: string | null;
-            preferred_channel: string;
+            /**
+             * @description How she asked to be reached. The others are still tried if it fails.
+             * @enum {string}
+             */
+            preferred_channel: "push" | "sms" | "whatsapp";
+            /** @description The ways of reaching her that are switched on at TrustRide, to offer as choices. */
+            channels: ("push" | "sms" | "whatsapp")[];
             roles: {
                 name: string;
                 label: string | null;
@@ -1138,7 +1186,13 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    push_token?: string;
+                };
+            };
+        };
         responses: {
             /** @description No content */
             204: {
@@ -1150,6 +1204,68 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "notification.register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The Expo push token, e.g. "ExponentPushToken[xxxx]" */
+                    token: string;
+                    /** @enum {string|null} */
+                    platform?: "ios" | "android" | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        account: components["schemas"]["AccountResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "notification.prefer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    channel: "push" | "sms" | "whatsapp";
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        account: components["schemas"]["AccountResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
         };
     };
     "support.show": {

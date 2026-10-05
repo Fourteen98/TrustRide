@@ -1,6 +1,7 @@
 <?php
 
 use App\Api\Auth\AuthController;
+use App\Api\Auth\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -10,5 +11,7 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:app')->group(function () {
         Route::get('me', [AuthController::class, 'me']);
         Route::post('logout', [AuthController::class, 'logout']);
+        Route::post('push-device', [NotificationController::class, 'register']);
+        Route::put('preferred-channel', [NotificationController::class, 'prefer']);
     });
 });
