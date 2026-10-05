@@ -41,6 +41,8 @@ class TodaysRiders
         $absent = AbsenceNotice::query()
             ->whereIn('rider_id', $seats->pluck('rider_id'))
             ->where('date', $date->toDateString())
+            // Only a day she told us about. A day given back because the mate missed her still has her on the list.
+            ->where('source', 'rider')
             ->pluck('rider_id')
             ->flip();
 

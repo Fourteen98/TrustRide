@@ -13,4 +13,11 @@ return [
 
     // How many days before the end a rider is told her subscription is running out.
     'expiring_notice_days' => (int) env('EXPIRING_NOTICE_DAYS', 3),
+
+    // Automatic renewal takes the money this many days before the subscription ends, so a failed
+    // charge leaves her time to pay by hand. It is tried once a day until it works or gives up.
+    'auto_renew_charge_days_before' => (int) env('AUTO_RENEW_CHARGE_DAYS_BEFORE', 1),
+
+    // Charges in a row that may fail before automatic renewal is switched off and she is told.
+    'auto_renew_max_failures' => (int) env('AUTO_RENEW_MAX_FAILURES', 3),
 ];

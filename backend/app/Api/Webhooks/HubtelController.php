@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Modules\Payments\Actions\HandleHubtelCallback;
+use Modules\Payments\Actions\HandleHubtelPreapprovalCallback;
 use Throwable;
 
 class HubtelController
@@ -25,6 +26,25 @@ class HubtelController
             $handle->handle($request->all());
         } catch (Throwable $e) {
             Log::channel('hubtel')->error('Callback handling crashed', ['error' => $e->getMessage()]);
+            report($e);
+        }
+
+        return response()->json(['received' => true]);
+    }
+
+    /**
+     * Hubtel direct debit callback.
+     *
+     * Hubtel calls this when a rider approves or declines a direct debit request. Always answers 200.
+     *
+     * @unauthenticated
+     */
+    public function preapproval(Request $request, HandleHubtelPreapprovalCallback $handle): JsonResponse
+    {
+        try {
+            $handle->handle($request->all());
+        } catch (Throwable $e) {
+            Log::channel('hubtel')->error('Preapproval callback handling crashed', ['error' => $e->getMessage()]);
             report($e);
         }
 

@@ -51,6 +51,8 @@ class PlanResource extends Resource
             TextInput::make('notice_cutoff_minutes')->label('Notice needed, in minutes before departure')
                 ->helperText('720 is 12 hours. For a 6:30am van, that is 6:30pm the evening before.')
                 ->numeric()->required()->minValue(0)->default(720),
+            Toggle::make('credit_missed_pickup')->label('Give the day back when the mate marks her not at the stop')
+                ->helperText('Off: she is only sent a message. On: her subscription also gets a day longer. Either way the message can be switched off under Messaging > Rules.'),
             Toggle::make('is_active')->label('On sale')->default(true)
                 ->helperText('Changing a plan never changes subscriptions already bought.'),
         ]);

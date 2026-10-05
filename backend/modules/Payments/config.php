@@ -15,6 +15,10 @@ return [
      */
     'driver' => env('PAYMENTS_DRIVER', 'fake'),
 
+    /*
+     * The fake gateway's direct debit: a mandate approves itself after the same wait.
+     * A number ending 0000 is declined. A number ending 1111 asks for a code instead: the code is 1234.
+     */
     'fake' => [
         'settle_after_seconds' => (int) env('PAYMENTS_FAKE_SETTLE_SECONDS', 5),
     ],
@@ -28,6 +32,9 @@ return [
         'merchant_account_number' => env('HUBTEL_MERCHANT_ACCOUNT_NUMBER'),
 
         'receive_base_url' => env('HUBTEL_RECEIVE_BASE_URL', 'https://rmp.hubtel.com'),
+        // Direct debit mandates ("preapproval").
+        'preapproval_base_url' => env('HUBTEL_PREAPPROVAL_BASE_URL', 'https://preapproval.hubtel.com'),
+        'preapproval_callback_url' => env('HUBTEL_PREAPPROVAL_CALLBACK_URL'),
         'status_base_url' => env('HUBTEL_STATUS_BASE_URL', 'https://api-txnstatus.hubtel.com'),
 
         // Where Hubtel POSTs the result. Must be reachable from the internet, so not localhost.
@@ -37,12 +44,14 @@ return [
 
     /*
      * The mobile money networks a rider can pay from. The key is what the app sends.
-     * "channel" is the name Hubtel uses for that network.
+     * "channel" is the name Hubtel uses for a prompted payment on that network.
+     * "debit_channel" is its name for direct debit. Null means the network has no direct debit,
+     * and the app then only offers paying once.
      */
     'networks' => [
-        'mtn' => ['label' => 'MTN MoMo', 'channel' => 'mtn-gh'],
-        'telecel' => ['label' => 'Telecel Cash', 'channel' => 'vodafone-gh'],
-        'airteltigo' => ['label' => 'AirtelTigo Money', 'channel' => 'tigo-gh'],
+        'mtn' => ['label' => 'MTN MoMo', 'channel' => 'mtn-gh', 'debit_channel' => 'mtn-gh-direct-debit'],
+        'telecel' => ['label' => 'Telecel Cash', 'channel' => 'vodafone-gh', 'debit_channel' => 'vodafone-gh-direct-debit'],
+        'airteltigo' => ['label' => 'AirtelTigo Money', 'channel' => 'tigo-gh', 'debit_channel' => null],
     ],
 
     // How long an unpaid payment is given before a status check may mark it failed.

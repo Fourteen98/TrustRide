@@ -2,6 +2,7 @@
 
 use App\Api\Rider\AbsenceController;
 use App\Api\Rider\ApplicationController;
+use App\Api\Rider\AutoRenewalController;
 use App\Api\Rider\DataDeletionController;
 use App\Api\Rider\HomeController;
 use App\Api\Rider\PlanController;
@@ -29,6 +30,10 @@ Route::prefix('rider/v1')->middleware('auth:app')->group(function () {
         Route::get('plans', [PlanController::class, 'index']);
         Route::post('purchase', [PurchaseController::class, 'store'])->middleware('throttle:10,1');
         Route::get('purchase', [PurchaseController::class, 'show']);
+        Route::get('auto-renewal', [AutoRenewalController::class, 'show']);
+        Route::post('auto-renewal', [AutoRenewalController::class, 'store'])->middleware('throttle:10,1');
+        Route::post('auto-renewal/code', [AutoRenewalController::class, 'code'])->middleware('throttle:10,1');
+        Route::delete('auto-renewal', [AutoRenewalController::class, 'destroy']);
     });
 
     Route::get('trips', [TripController::class, 'index'])->middleware('permission:trips.follow,app');

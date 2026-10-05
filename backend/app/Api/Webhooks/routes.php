@@ -9,4 +9,5 @@ use Illuminate\Support\Facades\Route;
  */
 Route::prefix('webhooks')->middleware('throttle:120,1')->group(function () {
     Route::post('hubtel/payment', [HubtelController::class, 'payment']);
+    Route::post('hubtel/preapproval', [HubtelController::class, 'preapproval']);
 });

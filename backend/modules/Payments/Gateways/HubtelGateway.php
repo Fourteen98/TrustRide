@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Modules\Payments\Models\Payment;
+use Modules\Payments\Models\PaymentMandate;
 use Modules\Payments\Support\Wire;
 use Throwable;
 
@@ -50,7 +51,8 @@ class HubtelGateway implements PaymentGateway
 
         $body = [
             'CustomerMsisdn' => Wire::msisdn((string) $payment->phone),
-            'Channel' => config("payments.networks.{$payment->network}.channel"),
+            // With a mandate the direct debit channel is used, and Hubtel takes the money without prompting her.
+            'Channel' => config("payments.networks.{$payment->network}.".($payment->mandate_id ? 'debit_channel' : 'channel')),
             'Amount' => round($payment->amount / 100, 2),
             'PrimaryCallbackUrl' => $config['callback_url'] ?: url('/api/webhooks/hubtel/payment'),
             'Description' => $payment->description,
@@ -92,6 +94,104 @@ class HubtelGateway implements PaymentGateway
             (string) (Wire::pick($json, 'Message') ?: "Hubtel refused the request (HTTP {$response->status()})."),
             $json ?: $response->body(),
         );
+    }
+
+    /**
+     * Direct debit, step 1. Hubtel calls a mandate a "preapproval".
+     *
+     *   POST {preapproval_base_url}/api/v2/merchant/{merchant}/preapproval/initiate
+     *        {clientReferenceId, customerMsisdn, channel, callbackUrl}
+     *   Hubtel answers with hubtelPreApprovalId and verificationType: USSD (she approves a prompt)
+     *   or OTP (she is texted a code, which goes back through confirmMandate). otpPrefix comes with OTP.
+     *   The final answer is POSTed to callbackUrl with PreapprovalStatus APPROVED.
+     *
+     * Written from Hubtel's published shape. NOT yet run against Hubtel. Watch the first one in the log.
+     */
+    public function requestMandate(PaymentMandate $mandate): MandateResult
+    {
+        $config = config('payments.hubtel');
+        $channel = config("payments.networks.{$mandate->network}.debit_channel");
+
+        if (! $channel) {
+            return MandateResult::refused('That network has no direct debit.');
+        }
+
+        $json = $this->preapproval('initiate', 'post', 'preapproval/initiate', [
+            'clientReferenceId' => $mandate->reference,
+            'customerMsisdn' => Wire::msisdn((string) $mandate->phone),
+            'channel' => $channel,
+            'callbackUrl' => $config['preapproval_callback_url'] ?: url('/api/webhooks/hubtel/preapproval'),
+        ], $mandate->reference);
+
+        $data = Wire::pick($json['body'], 'data');
+
+        if (! $json['ok'] || ! Wire::pick($data, 'hubtelPreApprovalId')) {
+            return MandateResult::refused((string) (Wire::pick($json['body'], 'message') ?: 'Hubtel refused the request.'), $json['body']);
+        }
+
+        return MandateResult::accepted(
+            (string) Wire::pick($data, 'hubtelPreApprovalId'),
+            strtolower((string) (Wire::pick($data, 'verificationType') ?: 'ussd')),
+            Wire::pick($data, 'otpPrefix'),
+            $json['body'],
+        );
+    }
+
+    /** Direct debit, step 2 for OTP networks: POST .../preapproval/verify-otp with the code as "PREFIX-1234". */
+    public function confirmMandate(PaymentMandate $mandate, string $code): MandateResult
+    {
+        $code = trim($code);
+
+        if ($mandate->otp_prefix && ! str_contains($code, '-')) {
+            $code = "{$mandate->otp_prefix}-{$code}";
+        }
+
+        $json = $this->preapproval('verify-otp', 'post', 'preapproval/verify-otp', [
+            'customerMsisdn' => Wire::msisdn((string) $mandate->phone),
+            'hubtelPreApprovalId' => $mandate->provider_mandate_id,
+            'clientReferenceId' => $mandate->reference,
+            'otpCode' => $code,
+        ], $mandate->reference);
+
+        return $json['ok']
+            ? MandateResult::accepted($mandate->provider_mandate_id, raw: $json['body'])
+            : MandateResult::refused((string) (Wire::pick($json['body'], 'message') ?: 'That code was not accepted.'), $json['body']);
+    }
+
+    /** GET .../preapproval/{msisdn}/cancel */
+    public function cancelMandate(PaymentMandate $mandate): bool
+    {
+        if (! $mandate->phone) {
+            return false;
+        }
+
+        return $this->preapproval('cancel', 'get', 'preapproval/'.Wire::msisdn($mandate->phone).'/cancel', [], $mandate->reference)['ok'];
+    }
+
+    /**
+     * One call to the preapproval API, logged both ways.
+     *
+     * @return array{ok: bool, body: mixed}
+     */
+    private function preapproval(string $what, string $method, string $path, array $body, string $reference): array
+    {
+        $config = config('payments.hubtel');
+        $url = sprintf('%s/api/v2/merchant/%s/%s', rtrim($config['preapproval_base_url'], '/'), $config['merchant_account_number'], $path);
+
+        Log::channel('hubtel')->info("OUT preapproval {$what} request", ['endpoint' => $url, 'reference' => $reference, 'body' => $body]);
+
+        try {
+            $request = Http::withBasicAuth((string) $config['username'], (string) $config['api_key'])->acceptJson()->asJson()->timeout(20);
+            $response = $method === 'get' ? $request->get($url) : $request->post($url, $body);
+        } catch (Throwable $e) {
+            Log::channel('hubtel')->error("OUT preapproval {$what} transport error", ['reference' => $reference, 'error' => $e->getMessage()]);
+
+            return ['ok' => false, 'body' => ['message' => 'Could not reach Hubtel.']];
+        }
+
+        Log::channel('hubtel')->info("IN  preapproval {$what} response", ['reference' => $reference, 'http_status' => $response->status(), 'body' => $response->body()]);
+
+        return ['ok' => $response->successful(), 'body' => $response->json() ?? $response->body()];
     }
 
     public function status(Payment $payment): StatusResult

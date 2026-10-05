@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 use Modules\Riders\Models\Rider;
 use Modules\Subscriptions\Enums\NoShowPolicy;
 use Modules\Subscriptions\Enums\SeatStatus;
-use Modules\Subscriptions\Enums\SubscriptionStatus;
 use Modules\Subscriptions\Models\AbsenceNotice;
 use Modules\Subscriptions\Models\Seat;
 use Modules\Subscriptions\Models\Subscription;
@@ -21,6 +20,8 @@ use Modules\Subscriptions\Models\Subscription;
  */
 class GiveAbsenceNotice
 {
+    public function __construct(private CreditDays $credit) {}
+
     public function handle(Rider $rider, CarbonInterface $date, ?CarbonInterface $now = null): AbsenceNotice
     {
         return DB::transaction(function () use ($rider, $date, $now) {
@@ -28,22 +29,7 @@ class GiveAbsenceNotice
             $subscription = $check['subscription'];
 
             if ($check['credited']) {
-                $subscription->update([
-                    'ends_on' => $subscription->ends_on->addDay(),
-                    'credited_days' => $subscription->credited_days + 1,
-                ]);
-
-                // A renewal already bought starts the day after, so it moves one day too.
-                Subscription::query()
-                    ->where('rider_id', $rider->id)
-                    ->where('status', SubscriptionStatus::Active)
-                    ->where('starts_on', '>', $check['date']->toDateString())
-                    ->whereKeyNot($subscription->id)
-                    ->get()
-                    ->each(fn (Subscription $later) => $later->update([
-                        'starts_on' => $later->starts_on->addDay(),
-                        'ends_on' => $later->ends_on->addDay(),
-                    ]));
+                $this->credit->handle($subscription, 1, $check['date']);
             }
 
             return AbsenceNotice::query()->create([

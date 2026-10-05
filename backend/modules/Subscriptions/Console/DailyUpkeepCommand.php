@@ -15,7 +15,7 @@ class DailyUpkeepCommand extends Command
     {
         $counts = $upkeep->handle();
 
-        $this->info("Told {$counts['expiring']} riders their subscription is ending. Expired {$counts['expired']}. Released {$counts['released']} seats.");
+        $this->info("Told {$counts['expiring']} riders their subscription is ending. Charged {$counts['charged']} automatic renewals. Expired {$counts['expired']}. Released {$counts['released']} seats.");
 
         return self::SUCCESS;
     }

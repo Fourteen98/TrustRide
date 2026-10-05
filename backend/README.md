@@ -237,6 +237,29 @@ Payments knows nothing about riders or plans. It charges "a thing with a type an
 - The webhook always answers 200, so Hubtel doesn't retry forever. Anything missed is found by the status check.
 - When a rider's data is erased, the payment rows stay for the accounts, without the phone number.
 
+### Direct debit (automatic renewal)
+
+The other way to pay. She approves once, and her plan's price is taken each time it ends.
+
+```
+app            POST /api/rider/v1/auto-renewal {plan_id, network, phone?}
+Subscriptions  StartAutoRenewal: one auto_renewals row per rider, status pending
+Payments       RequestMandate: a payment_mandates row with our reference (TR-M-...), sent to the gateway
+               ... she approves on her phone, or types a texted code (POST auto-renewal/code) ...
+Hubtel         POST /api/webhooks/hubtel/preapproval
+Payments       ApplyMandateOutcome: active or failed, once, and fires mandate.approved or mandate.failed
+Subscriptions  FollowMandate: switches it on, tells her, and takes the first payment if she has no subscription
+later          subscriptions:upkeep charges the day before her plan ends, through the mandate, with no prompt
+```
+
+- A mandate charge is an ordinary plan purchase, so the same code activates it and the same receipt goes out.
+- Three days before the end she is told what will be taken (`auto_renewal.upcoming`), instead of "renew to keep your seat".
+- The charge is tried once a day. Three failures in a row switch it off and she is told (`AUTO_RENEW_MAX_FAILURES`).
+- She can stop it in the app at any time, and an operator can under Subscriptions > Automatic renewals. Only she can start one. Once it is stopped here it is never charged again, whatever the gateway says.
+- MTN and Telecel only. `debit_channel` in `modules/Payments/config.php` says which networks have it. The app hides the choice on the others.
+- **Unverified, like the prompt payment.** The Hubtel "preapproval" calls in `HubtelGateway` are written from Hubtel's published format and have never been run against Hubtel. Hubtel may also need direct debit switched on for the merchant account. Ask them.
+- On the fake gateway a mandate approves itself after a few seconds. A wallet ending `0000` is declined. A wallet ending `1111` asks for a code, which is `1234`.
+
 **In the console.** Subscriptions > Payments lists every charge. "Check status" asks the gateway now. "Settle by hand" needs the `payments.resolve` permission, which operators don't get by default, because it gives a rider a subscription without the gateway saying she paid.
 
 **Real SMS.** Set `MESSAGING_SMS_DRIVER=hubtel` and the `HUBTEL_SMS_` values. These are the SMS API keys, a different pair from the payment keys. Login codes and every message rule then go out as real texts.
@@ -259,6 +282,7 @@ anyone     GET  /t/{public id}                  the live map page. No login.
 - **"Stops away" needs no map service.** A stop counts as reached when the van comes within 150 metres of its pin, or when the mate marks anyone there. Stops need a latitude and longitude (Network > Stops) for the first to work. The second works without.
 - **One map, three places.** `/t/{public id}` is a plain web page (`resources/views/trip.blade.php`) using Leaflet and OpenStreetMap, which cost nothing and need no key. The app shows that same page inside itself, the share link opens it, and the console links to it. It names no rider, can't be guessed, and stops showing the van when the trip ends.
 - **By hand.** Operators can start and end a trip under Subscriptions > Trips when the crew's app is off.
+- **Not at the stop.** When the mate marks a rider "Not here" she is sent a message. Each plan has a switch, "Give the day back when the mate marks her not at the stop", off by default. If the mate corrects it, the day is taken back. The message itself can be switched off under Messaging > Rules.
 - **Housekeeping.** `trips:end-stale` ends trips nobody ended, after midnight. `trips:prune` deletes positions older than `TRIPS_LOCATION_HISTORY_DAYS` (30 until the business decides).
 - **Try it without a van.** `php artisan trips:simulate` drives a pretend van along today's first run and prints the map link.
 
@@ -343,5 +367,5 @@ An action or checklist used on two screens goes in a class of its own, like `Mod
 - Automatic deletion of riders who have gone quiet (task H1). Deletion on request works.
 - Trips, live location and the driver and mate screens (Phase 7).
 - WhatsApp messages arriving in the support queue by themselves.
-- Background location (D1, D9), the driver's commission screen (D8), and using pickups for the no-show policy.
+- Background location (D1, D9) and the driver's commission screen (D8).
 - Deploy pipeline and backups (task F8).

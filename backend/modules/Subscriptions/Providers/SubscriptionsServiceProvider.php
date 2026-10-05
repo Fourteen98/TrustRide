@@ -2,13 +2,19 @@
 
 namespace Modules\Subscriptions\Providers;
 
+use App\Support\Contracts\DomainEvent;
 use App\Support\ModuleServiceProvider;
 use App\Support\Permissions\PermissionGroupDefinition;
 use App\Support\Scope;
 use Illuminate\Console\Scheduling\Schedule;
+use Modules\Payments\Events\MandateApproved;
+use Modules\Payments\Events\MandateCancelled;
+use Modules\Payments\Events\MandateFailed;
 use Modules\Payments\Events\PaymentFailed;
 use Modules\Payments\Events\PaymentSucceeded;
 use Modules\Subscriptions\Console\DailyUpkeepCommand;
+use Modules\Subscriptions\Listeners\ApplyPickupToSubscription;
+use Modules\Subscriptions\Listeners\FollowMandate;
 use Modules\Subscriptions\Listeners\SettlePurchaseWhenPaymentSettles;
 
 class SubscriptionsServiceProvider extends ModuleServiceProvider
@@ -16,6 +22,10 @@ class SubscriptionsServiceProvider extends ModuleServiceProvider
     protected array $listen = [
         PaymentSucceeded::class => [SettlePurchaseWhenPaymentSettles::class],
         PaymentFailed::class => [SettlePurchaseWhenPaymentSettles::class],
+        DomainEvent::class => [ApplyPickupToSubscription::class],
+        MandateApproved::class => [FollowMandate::class],
+        MandateFailed::class => [FollowMandate::class],
+        MandateCancelled::class => [FollowMandate::class],
     ];
 
     public function boot(): void

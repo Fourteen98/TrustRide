@@ -16,7 +16,7 @@ class Subscription extends Model
 {
     protected $fillable = [
         'rider_id', 'plan_id', 'status', 'starts_on', 'ends_on', 'price', 'trips_per_day', 'no_show_policy',
-        'notice_cutoff_minutes', 'credited_days', 'activated_at', 'activated_by', 'expiring_notified_at',
+        'notice_cutoff_minutes', 'credit_missed_pickup', 'credited_days', 'activated_at', 'activated_by', 'expiring_notified_at',
     ];
 
     protected $attributes = ['status' => 'active', 'credited_days' => 0];
@@ -34,6 +34,7 @@ class Subscription extends Model
             'trips_per_day' => 'integer',
             'notice_cutoff_minutes' => 'integer',
             'credited_days' => 'integer',
+            'credit_missed_pickup' => 'boolean',
         ];
     }
 

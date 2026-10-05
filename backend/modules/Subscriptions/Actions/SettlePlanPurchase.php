@@ -44,6 +44,7 @@ class SettlePlanPurchase
             }
 
             $purchase->update(['status' => PurchaseStatus::Activated, 'subscription_id' => $subscription->id, 'problem' => null]);
+            $purchase->autoRenewal?->update(['failures' => 0, 'last_error' => null]);
 
             return $purchase;
         });
@@ -58,6 +59,11 @@ class SettlePlanPurchase
             if ($purchase->status === PurchaseStatus::Pending) {
                 $purchase->update(['status' => PurchaseStatus::Failed]);
                 PurchaseFailed::dispatch($purchase);
+
+                // A charge we started ourselves counts against her automatic renewal.
+                if ($purchase->autoRenewal?->isActive()) {
+                    app(ChargeAutoRenewal::class)->failed($purchase->autoRenewal, 'The charge did not go through.');
+                }
             }
 
             return $purchase;

@@ -9,7 +9,7 @@ use Modules\Riders\Models\Rider;
 
 class AbsenceNotice extends Model
 {
-    protected $fillable = ['rider_id', 'subscription_id', 'date', 'given_at', 'in_time', 'credited'];
+    protected $fillable = ['rider_id', 'subscription_id', 'date', 'given_at', 'in_time', 'credited', 'source'];
 
     protected function casts(): array
     {

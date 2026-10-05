@@ -7,9 +7,11 @@ use Illuminate\Support\Str;
 use Modules\Payments\Enums\PaymentStatus;
 use Modules\Payments\Gateways\GatewayManager;
 use Modules\Payments\Models\Payment;
+use Modules\Payments\Models\PaymentMandate;
 
 /**
- * Asks the gateway to prompt a phone for money. The only way a payment starts.
+ * Asks the gateway for money: by a prompt on the phone, or without one when a mandate is passed.
+ * The only way a payment starts.
  *
  * The caller says what is being paid for as a type and an id, e.g. ('plan_purchase', 12).
  * The answer comes later as a PaymentSucceeded or PaymentFailed event carrying the same type and id.
@@ -19,7 +21,7 @@ class StartPayment
 {
     public function __construct(private GatewayManager $gateways) {}
 
-    public function handle(string $payableType, int $payableId, int $amount, string $phone, string $network, string $description): Payment
+    public function handle(string $payableType, int $payableId, int $amount, string $phone, string $network, string $description, ?PaymentMandate $mandate = null): Payment
     {
         if ($amount <= 0) {
             throw new DomainException('There is nothing to pay.');
@@ -29,7 +31,13 @@ class StartPayment
             throw new DomainException('Choose the mobile money network to pay from.');
         }
 
-        $gateway = $this->gateways->gateway();
+        if ($mandate && ! $mandate->isActive()) {
+            throw new DomainException('Automatic payment is not set up on that number.');
+        }
+
+        // A mandate is charged by the gateway that granted it. Its wallet and network are the ones charged.
+        $gateway = $this->gateways->gateway($mandate?->provider);
+        [$phone, $network] = $mandate ? [(string) $mandate->phone, $mandate->network] : [$phone, $network];
 
         // The row is saved before the gateway is called. If the call dies halfway, the payment still
         // exists here, and the status check can find out what the gateway did with it.
@@ -42,6 +50,7 @@ class StartPayment
             'phone' => $phone,
             'network' => $network,
             'provider' => $gateway->key(),
+            'mandate_id' => $mandate?->id,
         ]);
 
         $result = $gateway->charge($payment);

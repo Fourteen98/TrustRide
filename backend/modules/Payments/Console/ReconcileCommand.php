@@ -3,9 +3,13 @@
 namespace Modules\Payments\Console;
 
 use Illuminate\Console\Command;
+use Modules\Payments\Actions\ApplyMandateOutcome;
 use Modules\Payments\Actions\ReconcilePayment;
+use Modules\Payments\Enums\MandateStatus;
 use Modules\Payments\Enums\PaymentStatus;
+use Modules\Payments\Gateways\GatewayManager;
 use Modules\Payments\Models\Payment;
+use Modules\Payments\Models\PaymentMandate;
 
 class ReconcileCommand extends Command
 {
@@ -13,7 +17,7 @@ class ReconcileCommand extends Command
 
     protected $description = 'Ask the gateway about payments still waiting, for when a callback never came';
 
-    public function handle(ReconcilePayment $reconcile): int
+    public function handle(ReconcilePayment $reconcile, ApplyMandateOutcome $applyMandate, GatewayManager $gateways): int
     {
         $payments = Payment::query()
             ->where('status', PaymentStatus::Initiated)
@@ -32,6 +36,19 @@ class ReconcileCommand extends Command
         foreach ($payments as $payment) {
             $outcome = $reconcile->handle($payment);
             $counts[$outcome] = ($counts[$outcome] ?? 0) + 1;
+        }
+
+        // A direct debit request nobody answered is closed, and withdrawn at the gateway in case it was approved late.
+        if (! $this->option('reference')) {
+            PaymentMandate::query()
+                ->where('status', MandateStatus::Pending)
+                ->where('created_at', '<=', now()->subMinutes((int) config('payments.fail_after_minutes')))
+                ->get()
+                ->each(function (PaymentMandate $mandate) use ($applyMandate, $gateways) {
+                    if ($applyMandate->handle($mandate, false, 'expired', null, 'Not approved in time.')) {
+                        rescue(fn () => $gateways->gateway($mandate->provider)->cancelMandate($mandate), report: false);
+                    }
+                });
         }
 
         $this->info($payments->isEmpty()

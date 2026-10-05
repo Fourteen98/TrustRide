@@ -10,6 +10,7 @@ export type Subscription = components['schemas']['SubscriptionResource'];
 export type Application = components['schemas']['ApplicationResource'];
 export type Plan = components['schemas']['PlanResource'];
 export type RiderTrip = paths['/rider/v1/trips']['get']['responses'][200]['content']['application/json']['trips'][number];
+export type AutoRenewal = components['schemas']['AutoRenewalResource'];
 export type Purchase = components['schemas']['PurchaseResource'];
 export type PlanChoices = paths['/rider/v1/plans']['get']['responses'][200]['content']['application/json'];
 export type Network = PlanChoices['networks'][number];
@@ -32,6 +33,11 @@ export const riderApi = {
   plans: () => call(() => api.GET('/rider/v1/plans')),
   /** Sends the mobile money prompt. The purchase comes back as "pending". */
   pay: async (body: NewPurchase) => (await call(() => api.POST('/rider/v1/purchase', { body }))).purchase,
+  /** Direct debit: sends a request to approve once. Nothing is charged until she approves. */
+  startAutoRenewal: async (body: NewPurchase) => (await call(() => api.POST('/rider/v1/auto-renewal', { body }))).auto_renewal,
+  /** The code she was texted, on networks that confirm a direct debit that way. */
+  sendAutoRenewalCode: (code: string) => call(() => api.POST('/rider/v1/auto-renewal/code', { body: { code } })),
+  stopAutoRenewal: () => call(() => api.DELETE('/rider/v1/auto-renewal')),
   /** Her latest payment, for asking again while it is pending. */
   purchase: async () => (await call(() => api.GET('/rider/v1/purchase'))).purchase,
   /** Where her van is today. One entry for each seat that runs today. */

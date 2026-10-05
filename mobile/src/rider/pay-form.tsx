@@ -9,14 +9,15 @@ import { TextField } from '@/components/text-field';
 import { useAction } from '@/hooks/use-action';
 import { looksLikeGhanaPhone } from '@/lib/phone';
 
-import { riderApi, type Network, type Plan, type Purchase } from './api';
+import { riderApi, type Network, type Plan } from './api';
 
 type Props = {
   plans: Plan[];
   networks: Network[];
   /** The number she logs in with. The prompt goes there unless she types another. */
   defaultPhone: string;
-  onStarted: (purchase: Purchase) => void;
+  /** Called once the prompt, or the direct debit request, has gone to her phone. */
+  onStarted: (how: 'once' | 'auto') => void;
 };
 
 /** Pick a plan, pick a network, confirm the wallet number, pay. */
@@ -24,9 +25,12 @@ export function PayForm({ plans, networks, defaultPhone, onStarted }: Props) {
   const [planId, setPlanId] = useState<number | null>(plans.length === 1 ? plans[0].id : null);
   const [network, setNetwork] = useState<Network['key'] | null>(null);
   const [phone, setPhone] = useState(defaultPhone);
+  const [how, setHow] = useState<'once' | 'auto'>('once');
   const pay = useAction();
 
   const plan = plans.find((candidate) => candidate.id === planId);
+  const canAuto = networks.find((candidate) => candidate.key === network)?.automatic ?? false;
+  const auto = how === 'auto' && canAuto;
 
   const submit = () => {
     if (!plan) {
@@ -41,7 +45,12 @@ export function PayForm({ plans, networks, defaultPhone, onStarted }: Props) {
       return pay.fail('Enter the mobile money number to pay from.');
     }
 
-    void pay.run(async () => onStarted(await riderApi.pay({ plan_id: plan.id, network: network as never, phone })));
+    const body = { plan_id: plan.id, network: network as never, phone };
+
+    void pay.run(async () => {
+      await (auto ? riderApi.startAutoRenewal(body) : riderApi.pay(body));
+      onStarted(auto ? 'auto' : 'once');
+    });
   };
 
   return (
@@ -66,13 +75,35 @@ export function PayForm({ plans, networks, defaultPhone, onStarted }: Props) {
 
       <TextField label="Mobile money number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoComplete="tel" />
 
+      {network ? (
+        <ChoiceGroup title="How to pay">
+          <Choice label="Just this time" detail="You get a prompt and approve it. When the plan ends you pay again." selected={!auto} onPress={() => setHow('once')} />
+          {canAuto ? (
+            <Choice
+              label="Automatically, each time it ends"
+              detail={`Approve once. We take ${plan?.price_label ?? 'the price'} from this number the day before your plan ends, and tell you first. Stop it any time.`}
+              selected={auto}
+              onPress={() => setHow('auto')}
+            />
+          ) : (
+            <MutedText>Automatic payment is not available on this network yet.</MutedText>
+          )}
+        </ChoiceGroup>
+      ) : null}
+
       <MutedText>
-        You will get a prompt on that phone. Approve it with your mobile money PIN. This pays for your seat only. Your fare still goes to
-        the mate.
+        {auto
+          ? 'You will get a direct debit request on that phone. Approve it once with your mobile money PIN. '
+          : 'You will get a prompt on that phone. Approve it with your mobile money PIN. '}
+        This pays for your seat only. Your fare still goes to the mate.
       </MutedText>
 
       <Notice text={pay.error} />
-      <Button label={plan ? `Pay ${plan.price_label}` : 'Pay'} loading={pay.busy} onPress={submit} />
+      <Button
+        label={auto ? `Set up automatic payment${plan ? ` of ${plan.price_label}` : ''}` : plan ? `Pay ${plan.price_label}` : 'Pay'}
+        loading={pay.busy}
+        onPress={submit}
+      />
     </>
   );
 }

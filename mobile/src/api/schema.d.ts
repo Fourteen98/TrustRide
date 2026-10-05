@@ -300,7 +300,8 @@ export interface paths {
         };
         /**
          * Plans on sale
-         * @description Also lists the mobile money networks she can pay from, for `POST purchase`.
+         * @description Also lists the mobile money networks she can pay from. `automatic` is true where direct debit works,
+         *     so the app can offer `POST auto-renewal` next to `POST purchase`.
          */
         get: operations["plan.index"];
         put?: never;
@@ -331,6 +332,57 @@ export interface paths {
          *     She needs a reserved seat first. A renewal starts the day after her current subscription ends.
          */
         post: operations["purchase.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rider/v1/auto-renewal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Her automatic renewal
+         * @description Null if she has never set one up. Ask every few seconds while the status is `pending`.
+         *     Once it is `active`, ask `GET purchase` for the first charge.
+         */
+        get: operations["autoRenewal.show"];
+        put?: never;
+        /**
+         * Set up automatic renewal
+         * @description Sends a direct debit request to her phone. Nothing is charged by this call. When she approves,
+         *     the plan is charged at once if she has no running subscription, and otherwise a day before it ends.
+         *     Only networks marked `automatic` under `GET plans` can be used. Calling it again replaces the plan or the wallet.
+         */
+        post: operations["autoRenewal.store"];
+        /**
+         * Stop automatic renewal
+         * @description The direct debit is withdrawn and nothing more is taken. Her running subscription is not touched.
+         */
+        delete: operations["autoRenewal.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rider/v1/auto-renewal/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send the code she was texted
+         * @description Only needed when `needs_code` is true. The status changes a moment later, so keep asking `GET auto-renewal`.
+         */
+        post: operations["autoRenewal.code"];
         delete?: never;
         options?: never;
         head?: never;
@@ -442,6 +494,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/webhooks/hubtel/preapproval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hubtel direct debit callback
+         * @description Hubtel calls this when a rider approves or declines a direct debit request. Always answers 200.
+         */
+        post: operations["hubtel.preapproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -483,6 +555,27 @@ export interface components {
             rejection_reason: "No seats left on that run" | "We don't serve that route yet" | "We don't have a van at that time" | "Other" | null;
             rejection_note: string | null;
             submitted_at: string;
+        };
+        /** AutoRenewalResource */
+        AutoRenewalResource: {
+            /**
+             * @description pending: she must approve on her phone, keep asking. active: on. off: stopped, or never approved.
+             * @enum {string}
+             */
+            status: "pending" | "active" | "off";
+            plan: string;
+            /** @description What is taken each time, e.g. "GHS 60" */
+            amount_label: string;
+            /** @description e.g. "MTN MoMo" */
+            network: string;
+            /** @description The last four digits of the wallet */
+            wallet: string;
+            /** @description True if she must type a code she was texted. Send it to `POST auto-renewal/code`. */
+            needs_code: boolean;
+            /** @description The letters before the dash in the code she was texted, to show next to the field */
+            code_prefix: string | null;
+            /** @description A sentence for her, saying where things stand */
+            message: string;
         };
         /**
          * CaseCategory
@@ -1082,6 +1175,7 @@ export interface operations {
                         subscription: components["schemas"]["SubscriptionResource"] | null;
                         renewal: components["schemas"]["SubscriptionResource"] | null;
                         purchase: components["schemas"]["PurchaseResource"] | null;
+                        auto_renewal: components["schemas"]["AutoRenewalResource"] | null;
                         /** @description Days she has already said she won't ride */
                         notices: components["schemas"]["NoticeResource"][];
                         /** @description The next days she can still say she won't ride, as "2026-10-07" */
@@ -1212,6 +1306,7 @@ export interface operations {
                         networks: {
                             key: string;
                             label: string;
+                            automatic: boolean;
                         }[];
                     };
                 };
@@ -1270,6 +1365,112 @@ export interface operations {
                 content: {
                     "application/json": {
                         purchase: components["schemas"]["PurchaseResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "autoRenewal.show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        auto_renewal: components["schemas"]["AutoRenewalResource"] | null;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "autoRenewal.store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plan_id: number;
+                    /** @enum {string} */
+                    network: "mtn" | "telecel" | "airteltigo";
+                    /** @description The wallet to charge. Leave out to use the number she logs in with. */
+                    phone?: string | null;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        auto_renewal: components["schemas"]["AutoRenewalResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "autoRenewal.destroy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        auto_renewal: components["schemas"]["AutoRenewalResource"] | null;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "autoRenewal.code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        auto_renewal: components["schemas"]["AutoRenewalResource"];
                     };
                 };
             };
@@ -1442,6 +1643,27 @@ export interface operations {
         };
     };
     "hubtel.payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        received: boolean;
+                    };
+                };
+            };
+        };
+    };
+    "hubtel.preapproval": {
         parameters: {
             query?: never;
             header?: never;

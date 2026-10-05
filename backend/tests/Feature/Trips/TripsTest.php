@@ -10,7 +10,9 @@ use Modules\Riders\Models\Rider;
 use Modules\Subscriptions\Actions\ActivateSubscription;
 use Modules\Subscriptions\Actions\ApproveApplicationWithSeats;
 use Modules\Subscriptions\Actions\GiveAbsenceNotice;
+use Modules\Subscriptions\Models\AbsenceNotice;
 use Modules\Subscriptions\Models\Plan;
+use Modules\Subscriptions\Models\Subscription;
 use Modules\Trips\Actions\EndTrip;
 use Modules\Trips\Enums\TripStatus;
 use Modules\Trips\Filament\Resources\TripResource\Pages\ManageTrips;
@@ -229,4 +231,30 @@ it('lets an operator start and end a trip by hand, and cleans up overnight', fun
     $this->travel(31)->days();
     $this->artisan('trips:prune')->assertSuccessful();
     expect(LocationPing::count())->toBe(0);
+});
+
+it('gives the day back for a missed pickup only when her plan says so, and takes it back if the mate corrects it', function () {
+    $ama = $this->riders['Ama Owusu'];
+    $esi = $this->riders['Esi Boateng'];
+    // Ama's subscription has the rule switched on. Esi's has the default: a message and nothing more.
+    $amaSub = Subscription::query()->where('rider_id', $ama->id)->sole();
+    $amaSub->update(['credit_missed_pickup' => true]);
+    $esiSub = Subscription::query()->where('rider_id', $esi->id)->sole();
+    [$amaEnds, $esiEnds] = [$amaSub->ends_on, $esiSub->ends_on];
+
+    phone($this->driver)->postJson('/api/driver/v1/trip/start', ['run_id' => $this->run->id]);
+    $mark = fn (int $riderId, string $status) => phone($this->mate)->postJson('/api/driver/v1/trip/pickups', ['run_id' => $this->run->id, 'rider_id' => $riderId, 'status' => $status])->assertOk();
+
+    $mark($ama->id, 'missed');
+    $mark($ama->id, 'missed');
+    $mark($esi->id, 'missed');
+
+    expect($amaSub->fresh())->ends_on->toEqual($amaEnds->addDay())->credited_days->toBe(1)
+        ->and($esiSub->fresh())->ends_on->toEqual($esiEnds)->credited_days->toBe(0)
+        ->and(AbsenceNotice::query()->where('source', 'missed_pickup')->count())->toBe(1);
+
+    $mark($ama->id, 'picked_up'); // the mate found her after all
+
+    expect($amaSub->fresh())->ends_on->toEqual($amaEnds)->credited_days->toBe(0)
+        ->and(AbsenceNotice::count())->toBe(0);
 });

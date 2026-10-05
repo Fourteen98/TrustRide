@@ -4,6 +4,7 @@ namespace Modules\Subscriptions\Actions;
 
 use DomainException;
 use Modules\Payments\Actions\StartPayment;
+use Modules\Payments\Models\PaymentMandate;
 use Modules\Riders\Models\Rider;
 use Modules\Subscriptions\Enums\PurchaseStatus;
 use Modules\Subscriptions\Enums\SubscriptionStatus;
@@ -12,7 +13,8 @@ use Modules\Subscriptions\Models\PlanPurchase;
 use Modules\Subscriptions\Models\Subscription;
 
 /**
- * A rider buys or renews a plan in the app. She gets a mobile money prompt on the phone she names.
+ * A rider buys or renews a plan. She gets a mobile money prompt on the phone she names, or,
+ * when a mandate is passed, the money is taken by direct debit with no prompt.
  * Nothing is activated here. That happens when Payments says the money arrived.
  *
  * Everything that would stop the subscription being activated is checked first, before money is asked for.
@@ -21,7 +23,7 @@ class StartPlanPurchase
 {
     public function __construct(private ActivateSubscription $activate, private StartPayment $pay) {}
 
-    public function handle(Rider $rider, Plan $plan, string $phone, string $network): PlanPurchase
+    public function handle(Rider $rider, Plan $plan, string $phone, string $network, ?PaymentMandate $mandate = null): PlanPurchase
     {
         $this->activate->ensureAllowed($rider, $plan);
 
@@ -55,7 +57,7 @@ class StartPlanPurchase
         ]);
 
         try {
-            $payment = $this->pay->handle(PlanPurchase::PAYABLE, $purchase->id, $plan->price, $phone, $network, "TrustRide {$plan->name} plan");
+            $payment = $this->pay->handle(PlanPurchase::PAYABLE, $purchase->id, $plan->price, $phone, $network, "TrustRide {$plan->name} plan", $mandate);
         } catch (DomainException $e) {
             $purchase->update(['status' => PurchaseStatus::Failed]);
 

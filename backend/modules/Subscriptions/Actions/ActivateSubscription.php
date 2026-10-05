@@ -59,6 +59,7 @@ class ActivateSubscription
                 'trips_per_day' => $plan->trips_per_day,
                 'no_show_policy' => $plan->no_show_policy,
                 'notice_cutoff_minutes' => $plan->notice_cutoff_minutes,
+                'credit_missed_pickup' => $plan->credit_missed_pickup,
                 'activated_at' => now(),
                 'activated_by' => $by?->id,
             ]);

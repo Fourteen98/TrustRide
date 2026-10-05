@@ -3,13 +3,14 @@
 namespace Modules\Payments\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Payments\Enums\PaymentStatus;
 
 class Payment extends Model
 {
     protected $fillable = [
         'reference', 'payable_type', 'payable_id', 'description', 'amount', 'currency', 'phone', 'network',
-        'provider', 'status', 'provider_transaction_id', 'failure_reason', 'paid_at', 'meta',
+        'provider', 'status', 'mandate_id', 'provider_transaction_id', 'failure_reason', 'paid_at', 'meta',
     ];
 
     protected $attributes = ['status' => 'initiated', 'currency' => 'GHS'];
@@ -22,6 +23,11 @@ class Payment extends Model
             'paid_at' => 'datetime',
             'meta' => 'array',
         ];
+    }
+
+    public function mandate(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMandate::class, 'mandate_id');
     }
 
     public function isWaiting(): bool

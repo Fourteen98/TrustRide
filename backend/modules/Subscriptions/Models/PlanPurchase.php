@@ -13,7 +13,7 @@ class PlanPurchase extends Model
     /** What Payments is told this is, so the answer finds its way back here. */
     public const PAYABLE = 'plan_purchase';
 
-    protected $fillable = ['rider_id', 'plan_id', 'amount', 'network', 'status', 'payment_id', 'subscription_id', 'problem'];
+    protected $fillable = ['rider_id', 'plan_id', 'amount', 'network', 'status', 'payment_id', 'subscription_id', 'problem', 'auto_renewal_id'];
 
     protected $attributes = ['status' => 'pending'];
 
@@ -35,6 +35,11 @@ class PlanPurchase extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    public function autoRenewal(): BelongsTo
+    {
+        return $this->belongsTo(AutoRenewal::class);
     }
 
     public function subscription(): BelongsTo

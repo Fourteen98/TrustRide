@@ -8,7 +8,7 @@ What works today (tasks R1 to R6 in `../backend/docs/build-plan.pdf`, except pay
 - **Rider:** apply for a seat, see the application's status, see her seat with the car number, colour, driver, stop and time, see the plans and how to pay, say she won't ride on a day, and ask for her data to be deleted.
 - **Driver and mate:** placeholder cards. Their screens come in release 2.
 
-She pays for a plan on the Plans screen with mobile money. The server sends a prompt to her phone and the screen asks every few seconds until the payment is settled. In development the backend uses a fake gateway: a payment succeeds after a few seconds, and a wallet number ending 0000 fails.
+She pays for a plan on the Plans screen with mobile money. The server sends a prompt to her phone and the screen asks every few seconds until the payment is settled. She can pay once, or set up direct debit so the plan renews by itself (`src/rider/auto-renewal.tsx`). The Plans screen keeps nothing in its own memory about a payment: it reads the server's home answer and asks again every few seconds while something is under way. In development the backend uses a fake gateway: a payment succeeds after a few seconds, and a wallet number ending 0000 fails.
 
 ## Run it
 

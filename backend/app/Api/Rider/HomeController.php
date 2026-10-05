@@ -3,6 +3,7 @@
 namespace App\Api\Rider;
 
 use App\Api\Rider\Resources\ApplicationResource;
+use App\Api\Rider\Resources\AutoRenewalResource;
 use App\Api\Rider\Resources\NoticeResource;
 use App\Api\Rider\Resources\PurchaseResource;
 use App\Api\Rider\Resources\SeatResource;
@@ -40,6 +41,8 @@ class HomeController
             'renewal' => isset($data['renewal']) ? new SubscriptionResource($data['renewal']) : null,
             /** Her latest payment while it still matters: waiting, failed in the last day, or paid but stuck */
             'purchase' => isset($data['purchase']) ? new PurchaseResource($data['purchase']) : null,
+            /** Her direct debit, if it is on or waiting for her to approve. Null if off or never set up. */
+            'auto_renewal' => isset($data['auto_renewal']) ? new AutoRenewalResource($data['auto_renewal']) : null,
             /** Days she has already said she won't ride */
             'notices' => NoticeResource::collection($data['notices'] ?? []),
             /**

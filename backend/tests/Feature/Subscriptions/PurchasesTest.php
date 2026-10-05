@@ -64,7 +64,7 @@ function settle(bool $paid = true): void
 
 it('lists the networks she can pay from next to the plans', function () {
     $this->getJson('/api/rider/v1/plans')->assertOk()
-        ->assertJsonPath('networks.0', ['key' => 'mtn', 'label' => 'MTN MoMo'])
+        ->assertJsonPath('networks.0', ['key' => 'mtn', 'label' => 'MTN MoMo', 'automatic' => true])->assertJsonPath('networks.2.automatic', false)
         ->assertJsonCount(3, 'networks');
 });
 

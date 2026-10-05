@@ -13,6 +13,7 @@ import { Spacing } from '@/constants/theme';
 import { useAction } from '@/hooks/use-action';
 import { useLoader } from '@/hooks/use-loader';
 import { clock, longDate, shortDate } from '@/lib/dates';
+import { AutoRenewalLine } from '@/rider/auto-renewal';
 import { TodaysTrips } from '@/rider/trip-card';
 import { riderApi, type RiderHome as HomeData } from '@/rider/api';
 import { SeatCard } from '@/rider/seat-card';
@@ -92,6 +93,13 @@ function Content({ home, reload }: { home: HomeData; reload: () => void }) {
         <SeatCard key={seat.id} seat={seat} />
       ))}
 
+      {home.auto_renewal?.status === 'pending' ? (
+        <Card title="Automatic payment waiting">
+          <MutedText>{home.auto_renewal.message}</MutedText>
+          <Button label="Continue" variant="plain" onPress={() => router.push('/plans')} />
+        </Card>
+      ) : null}
+
       {purchase && purchase.status !== 'failed' ? (
         <Card title={purchase.status === 'pending' ? 'Payment waiting' : 'We got your payment'}>
           <MutedText>{purchase.message}</MutedText>
@@ -126,7 +134,11 @@ function Content({ home, reload }: { home: HomeData; reload: () => void }) {
             {can('subscriptions.absence.give') && home.ride_dates.length > 0 ? (
               <Button label="I won't ride on a day" variant="plain" onPress={() => router.push('/not-riding')} />
             ) : null}
-            {can('subscriptions.renew') && !renewal ? <Button label="Renew" variant="plain" onPress={() => router.push('/plans')} /> : null}
+            {home.auto_renewal?.status === 'active' ? (
+              <AutoRenewalLine renewal={home.auto_renewal} onStopped={reload} />
+            ) : can('subscriptions.renew') && !renewal ? (
+              <Button label="Renew" variant="plain" onPress={() => router.push('/plans')} />
+            ) : null}
           </View>
         </Card>
       ) : null}

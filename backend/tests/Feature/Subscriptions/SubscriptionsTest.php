@@ -189,13 +189,13 @@ it('warns once before the end, expires after it, and frees the seat after the gr
     $rider = seated();
     $subscription = app(ActivateSubscription::class)->handle($rider, $this->month); // ends 3 November
 
-    expect(app(RunDailyUpkeep::class)->handle(Carbon::parse('2026-10-30')))->toBe(['expiring' => 0, 'expired' => 0, 'released' => 0]);
+    expect(app(RunDailyUpkeep::class)->handle(Carbon::parse('2026-10-30')))->toBe(['expiring' => 0, 'charged' => 0, 'expired' => 0, 'released' => 0]);
 
     expect(app(RunDailyUpkeep::class)->handle(Carbon::parse('2026-10-31'))['expiring'])->toBe(1)
         ->and(app(RunDailyUpkeep::class)->handle(Carbon::parse('2026-11-01'))['expiring'])->toBe(0)
         ->and(EventLog::where('name', 'subscription.expiring')->count())->toBe(1);
 
-    expect(app(RunDailyUpkeep::class)->handle(Carbon::parse('2026-11-04')))->toBe(['expiring' => 0, 'expired' => 1, 'released' => 0])
+    expect(app(RunDailyUpkeep::class)->handle(Carbon::parse('2026-11-04')))->toBe(['expiring' => 0, 'charged' => 0, 'expired' => 1, 'released' => 0])
         ->and($subscription->fresh()->status)->toBe(SubscriptionStatus::Expired)
         ->and(Seat::first()->status)->toBe(SeatStatus::Active);
 
@@ -211,7 +211,7 @@ it('does not warn or free the seat of a rider who has renewed', function () {
     app(ActivateSubscription::class)->handle($rider, $this->month);
 
     expect(app(RunDailyUpkeep::class)->handle(Carbon::parse('2026-11-01'))['expiring'])->toBe(0)
-        ->and(app(RunDailyUpkeep::class)->handle(Carbon::parse('2026-11-10')))->toBe(['expiring' => 0, 'expired' => 1, 'released' => 0]);
+        ->and(app(RunDailyUpkeep::class)->handle(Carbon::parse('2026-11-10')))->toBe(['expiring' => 0, 'charged' => 0, 'expired' => 1, 'released' => 0]);
 });
 
 it('gives up a reserved seat that was never paid for after a week', function () {

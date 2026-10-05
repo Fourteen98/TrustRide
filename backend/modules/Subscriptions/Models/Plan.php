@@ -7,12 +7,13 @@ use Modules\Subscriptions\Enums\NoShowPolicy;
 
 class Plan extends Model
 {
-    protected $fillable = ['name', 'duration_days', 'price', 'trips_per_day', 'no_show_policy', 'notice_cutoff_minutes', 'is_active'];
+    protected $fillable = ['name', 'duration_days', 'price', 'trips_per_day', 'no_show_policy', 'notice_cutoff_minutes', 'credit_missed_pickup', 'is_active'];
 
     protected $attributes = [
         'trips_per_day' => 1,
         'no_show_policy' => 'credit_with_notice',
         'notice_cutoff_minutes' => 720,
+        'credit_missed_pickup' => false,
         'is_active' => true,
     ];
 
@@ -21,6 +22,7 @@ class Plan extends Model
         return [
             'no_show_policy' => NoShowPolicy::class,
             'is_active' => 'boolean',
+            'credit_missed_pickup' => 'boolean',
             'price' => 'integer',
             'duration_days' => 'integer',
             'trips_per_day' => 'integer',

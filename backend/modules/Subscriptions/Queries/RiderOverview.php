@@ -5,10 +5,12 @@ namespace Modules\Subscriptions\Queries;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Modules\Riders\Models\Rider;
+use Modules\Subscriptions\Enums\AutoRenewalStatus;
 use Modules\Subscriptions\Enums\PurchaseStatus;
 use Modules\Subscriptions\Enums\SeatStatus;
 use Modules\Subscriptions\Enums\SubscriptionStatus;
 use Modules\Subscriptions\Models\AbsenceNotice;
+use Modules\Subscriptions\Models\AutoRenewal;
 use Modules\Subscriptions\Models\PlanPurchase;
 use Modules\Subscriptions\Models\Seat;
 use Modules\Subscriptions\Models\Subscription;
@@ -17,7 +19,7 @@ use Modules\Subscriptions\Models\Subscription;
 class RiderOverview
 {
     /**
-     * @return array{seats: Collection<int, Seat>, subscription: ?Subscription, renewal: ?Subscription, purchase: ?PlanPurchase, notices: Collection<int, AbsenceNotice>, ride_dates: list<string>}
+     * @return array{seats: Collection<int, Seat>, subscription: ?Subscription, renewal: ?Subscription, purchase: ?PlanPurchase, auto_renewal: ?AutoRenewal, notices: Collection<int, AbsenceNotice>, ride_dates: list<string>}
      */
     public function handle(Rider $rider): array
     {
@@ -51,6 +53,7 @@ class RiderOverview
             'renewal' => $upcoming->skip(1)->first(),
             'notices' => $notices,
             'purchase' => $this->purchase($rider),
+            'auto_renewal' => AutoRenewal::query()->where('rider_id', $rider->id)->where('status', '!=', AutoRenewalStatus::Off)->with(['plan', 'mandate'])->first(),
             'ride_dates' => $this->rideDates($seats, $upcoming, $notices, $today),
         ];
     }

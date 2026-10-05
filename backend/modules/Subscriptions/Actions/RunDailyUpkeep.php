@@ -4,10 +4,13 @@ namespace Modules\Subscriptions\Actions;
 
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Modules\Subscriptions\Enums\AutoRenewalStatus;
 use Modules\Subscriptions\Enums\SeatStatus;
 use Modules\Subscriptions\Enums\SubscriptionStatus;
+use Modules\Subscriptions\Events\AutoRenewalUpcoming;
 use Modules\Subscriptions\Events\SubscriptionExpired;
 use Modules\Subscriptions\Events\SubscriptionExpiring;
+use Modules\Subscriptions\Models\AutoRenewal;
 use Modules\Subscriptions\Models\Seat;
 use Modules\Subscriptions\Models\Subscription;
 
@@ -15,18 +18,19 @@ use Modules\Subscriptions\Models\Subscription;
  * The once-a-day housekeeping. Safe to run more than once in a day.
  *
  *  1. Tell riders whose subscription is about to end, once each.
+ *  1b. Take the payment for riders on automatic renewal whose subscription is ending.
  *  2. Expire subscriptions that have ended.
  *  3. Free seats nobody is paying for: lapsed past the grace period, or reserved and never paid.
  */
 class RunDailyUpkeep
 {
-    public function __construct(private ReleaseSeat $releaseSeat) {}
+    public function __construct(private ReleaseSeat $releaseSeat, private ChargeAutoRenewal $charge) {}
 
-    /** @return array{expiring: int, expired: int, released: int} */
+    /** @return array{expiring: int, charged: int, expired: int, released: int} */
     public function handle(?CarbonInterface $today = null): array
     {
         $today = CarbonImmutable::parse($today ?? now())->startOfDay();
-        $counts = ['expiring' => 0, 'expired' => 0, 'released' => 0];
+        $counts = ['expiring' => 0, 'charged' => 0, 'expired' => 0, 'released' => 0];
 
         $hasLaterSubscription = fn (Subscription $subscription) => Subscription::query()
             ->where('rider_id', $subscription->rider_id)
@@ -42,8 +46,23 @@ class RunDailyUpkeep
             ->reject($hasLaterSubscription)
             ->each(function (Subscription $subscription) use (&$counts) {
                 $subscription->update(['expiring_notified_at' => now()]);
-                SubscriptionExpiring::dispatch($subscription);
+                $renewal = AutoRenewal::query()->where('rider_id', $subscription->rider_id)->where('status', AutoRenewalStatus::Active)->first();
+
+                // "Renew to keep your seat" would be wrong for someone who renews by herself. She is told what will be taken.
+                $renewal
+                    ? AutoRenewalUpcoming::dispatch($renewal, ['ends_on_text' => $subscription->ends_on->format('j M Y')])
+                    : SubscriptionExpiring::dispatch($subscription);
                 $counts['expiring']++;
+            });
+
+        // Before anything is expired, so a renewal that goes through today keeps her subscription unbroken.
+        AutoRenewal::query()
+            ->where('status', AutoRenewalStatus::Active)
+            ->get()
+            ->each(function (AutoRenewal $renewal) use ($today, &$counts) {
+                if ($this->charge->handle($renewal, $today) === 'charged') {
+                    $counts['charged']++;
+                }
             });
 
         Subscription::query()
