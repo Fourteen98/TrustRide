@@ -2,6 +2,7 @@
 
 namespace App\Admin;
 
+use App\Admin\Pages\PilotReport;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -33,17 +34,18 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->brandName('TrustRide')
+            ->brandName('Aveo')
             ->brandLogo(fn () => asset('images/logo-light.png'))
             ->darkModeBrandLogo(fn () => asset('images/logo-dark.png'))
             ->brandLogoHeight('2.25rem')
             ->favicon(fn () => asset('favicon.png'))
             ->authGuard('platform')
             ->login()
-            ->colors(['primary' => Color::Amber])
+            // Aveo gold, from the logo.
+            ->colors(['primary' => Color::hex('#F2B01E')])
             // The order of the menu: what operators use most comes first.
-            ->navigationGroups(['Subscriptions', 'Support', 'Riders', 'Drivers', 'Messaging', 'Network', 'Access'])
-            ->pages([Dashboard::class])
+            ->navigationGroups(['Subscriptions', 'Ox', 'Support', 'Riders', 'Drivers', 'Messaging', 'Network', 'Access'])
+            ->pages([Dashboard::class, PilotReport::class])
             ->widgets([AccountWidget::class])
             ->middleware([
                 EncryptCookies::class,

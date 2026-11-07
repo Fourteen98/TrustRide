@@ -18,7 +18,7 @@ import { moment } from '@/lib/dates';
 import { supportApi, type SupportCase } from '@/support/api';
 
 /**
- * Task S2. Anyone in the app writes to TrustRide here. Her first message says what it is about and
+ * Task S2. Anyone in the app writes to Aveo here. Her first message says what it is about and
  * opens a case. Staff reply from the console, and the reply shows up here and as a message on her phone.
  */
 export default function HelpScreen() {
@@ -60,12 +60,12 @@ export default function HelpScreen() {
                   {current.status === 'resolved'
                     ? 'We have closed this one. If it is not sorted, write again below.'
                     : current.taken
-                      ? 'Someone at TrustRide is on it.'
+                      ? 'Someone at Aveo is on it.'
                       : 'We have your message. Someone will reply soon.'}
                 </MutedText>
               </Card>
             ) : (
-              <MutedText>Tell us what is wrong. A person at TrustRide reads every message and replies here.</MutedText>
+              <MutedText>Tell us what is wrong. A person at Aveo reads every message and replies here.</MutedText>
             )}
 
             {current?.messages.map((message) => (
@@ -73,14 +73,19 @@ export default function HelpScreen() {
                 key={`${message.at}-${message.from}-${message.body.length}`}
                 mine={message.from === 'you'}
                 body={message.body}
-                caption={`${message.from === 'you' ? 'You' : 'TrustRide'} · ${moment(message.at)}`}
+                caption={`${message.from === 'you' ? 'You' : 'Aveo'} · ${moment(message.at)}`}
               />
             ))}
 
             {!open ? (
               <ChoiceGroup title={current ? 'Something new? What is it about?' : 'What is it about?'}>
                 {categories.map((option) => (
-                  <Choice key={option.key} label={option.label} selected={option.key === category} onPress={() => setCategory(option.key)} />
+                  <Choice
+                    key={option.key}
+                    label={option.label}
+                    selected={option.key === category}
+                    onPress={() => setCategory(option.key)}
+                  />
                 ))}
               </ChoiceGroup>
             ) : null}

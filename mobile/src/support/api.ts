@@ -6,7 +6,7 @@ export type SupportCase = components['schemas']['CaseResource'];
 export type SupportMessage = SupportCase['messages'][number];
 export type Category = SupportState['categories'][number];
 
-/** Writing to TrustRide for help. The same for a rider, a driver and a mate. */
+/** Writing to Aveo for help. The same for a rider, a driver and a mate. */
 export const supportApi = {
   state: () => call(() => api.GET('/support/v1/case')),
   /** `category` only counts on the first message of a new conversation. */

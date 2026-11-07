@@ -160,7 +160,7 @@ it('sends the receipt with the car, driver, stop and time when a subscription st
 
     $bodies = collect($this->sms->sent)->pluck('body');
 
-    expect($bodies[0])->toBe('Good news Ama Owusu. Your TrustRide seat on Bortianor to Circle from Old Barrier is reserved. Open the app and choose a plan to make it yours.')
+    expect($bodies[0])->toBe('Good news Ama Owusu. Your Aveo seat on Bortianor to Circle from Old Barrier is reserved. Open the app and choose a plan to make it yours.')
         ->and($bodies[1])->toBe("You're in, Ama Owusu. Car {$network['vehicle']->registration_number}, White. Driver Kwame Mensah. Be at Old Barrier by 06:40. Your 1 month plan runs to 3 Nov 2026.")
         ->and($this->sms->sent[1]['phone'])->toBe($application->rider->account->phone);
 });
@@ -203,7 +203,7 @@ it('sends login codes through the same SMS channel', function () {
     $this->postJson('/api/auth/code', ['phone' => '0241234567'])->assertStatus(202);
 
     expect($this->sms->sent[0]['phone'])->toBe('+233241234567')
-        ->and($this->sms->sent[0]['body'])->toMatch('/Your TrustRide code is \d{6}/');
+        ->and($this->sms->sent[0]['body'])->toMatch('/Your Aveo code is \d{6}/');
 });
 
 it('deletes her messages when her data is erased', function () {
@@ -229,7 +229,7 @@ it('lets staff write a rule and retry a failed message in the console', function
     }
 
     Livewire::test(ManageMessageRules::class)
-        ->callAction('create', ['name' => 'Welcome', 'event_name' => 'account.registered', 'audience' => 'rider', 'channel' => 'sms', 'body' => 'Welcome to TrustRide.'])
+        ->callAction('create', ['name' => 'Welcome', 'event_name' => 'account.registered', 'audience' => 'rider', 'channel' => 'sms', 'body' => 'Welcome to Aveo.'])
         ->assertHasNoActionErrors();
 
     $this->sms->fails = true;
@@ -261,7 +261,7 @@ it('sends real SMS through Hubtel when the SMS driver is hubtel, and reports a r
         'messaging.channels.sms.driver' => 'hubtel',
         'messaging.hubtel_sms.client_id' => 'sms-id',
         'messaging.hubtel_sms.client_secret' => 'sms-secret',
-        'messaging.hubtel_sms.sender_id' => 'TrustRide',
+        'messaging.hubtel_sms.sender_id' => 'Aveo',
     ]);
     Http::fake(['sms.hubtel.com/*' => Http::sequence()
         ->push(['messageId' => 'abc', 'status' => 0], 201)
@@ -270,7 +270,7 @@ it('sends real SMS through Hubtel when the SMS driver is hubtel, and reports a r
     $manager->channel('sms')->send('+233241234567', 'Hello Ama');
 
     Http::assertSent(fn ($request) => $request->url() === 'https://sms.hubtel.com/v1/messages/send'
-        && $request['from'] === 'TrustRide' && $request['to'] === '233241234567' && $request['content'] === 'Hello Ama'
+        && $request['from'] === 'Aveo' && $request['to'] === '233241234567' && $request['content'] === 'Hello Ama'
         && $request->hasHeader('Authorization', 'Basic '.base64_encode('sms-id:sms-secret')));
 
     expect(fn () => $manager->channel('sms')->send('+233241234567', 'Again'))->toThrow(RuntimeException::class, 'Invalid sender');
@@ -302,7 +302,7 @@ it('sends an app notification to every phone she is logged in on, and falls back
     expect($sent)->status->toBe(MessageStatus::Sent)->channel->toBe('push')
         ->and($this->sms->sent)->toBeEmpty()
         ->and(PushDevice::query()->pluck('token')->all())->toBe(['ExponentPushToken[one]']); // the dead phone was forgotten
-    Http::assertSent(fn ($request) => $request[0]['to'] === 'ExponentPushToken[one]' && $request[0]['body'] === 'Hello Ama' && $request[0]['title'] === 'TrustRide');
+    Http::assertSent(fn ($request) => $request[0]['to'] === 'ExponentPushToken[one]' && $request[0]['body'] === 'Hello Ama' && $request[0]['title'] === 'Aveo');
 
     // She switches back to SMS. Then logs out of her only phone: a push-only attempt has nowhere to go, so SMS carries it.
     $this->putJson('/api/auth/preferred-channel', ['channel' => 'sms'])->assertOk()->assertJsonPath('account.preferred_channel', 'sms');

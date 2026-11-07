@@ -45,11 +45,12 @@ class SendMessage
                 return $message;
             } catch (Throwable $e) {
                 $attempts[] = ['channel' => $key, 'ok' => false, 'error' => mb_substr($e->getMessage(), 0, 200), 'at' => now()->toIso8601String()];
-                $message->channel = $key;
             }
         }
 
-        $message->update(['status' => MessageStatus::Failed, 'channel' => $message->channel ?? end($attempts)['channel'] ?? null, 'attempts' => $attempts]);
+        // The channel last tried, even one that is not set up, so the log never shows a channel nothing went out on.
+        $last = end($attempts);
+        $message->update(['status' => MessageStatus::Failed, 'channel' => $last ? $last['channel'] : $message->channel, 'attempts' => $attempts]);
 
         return $message;
     }

@@ -13,13 +13,13 @@ class PlanPurchase extends Model
     /** What Payments is told this is, so the answer finds its way back here. */
     public const PAYABLE = 'plan_purchase';
 
-    protected $fillable = ['rider_id', 'plan_id', 'amount', 'network', 'status', 'payment_id', 'subscription_id', 'problem', 'auto_renewal_id'];
+    protected $fillable = ['rider_id', 'plan_id', 'amount', 'network', 'status', 'payment_id', 'subscription_id', 'problem', 'auto_renewal_id', 'seats'];
 
     protected $attributes = ['status' => 'pending'];
 
     protected function casts(): array
     {
-        return ['status' => PurchaseStatus::class, 'amount' => 'integer'];
+        return ['status' => PurchaseStatus::class, 'amount' => 'integer', 'seats' => 'integer'];
     }
 
     public function rider(): BelongsTo

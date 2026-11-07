@@ -27,6 +27,6 @@ class RequestLoginCode
             'expires_at' => now()->addMinutes(self::MINUTES_VALID),
         ]);
 
-        $this->sms->send($phone, "Your TrustRide code is {$code}. It expires in ".self::MINUTES_VALID.' minutes.');
+        $this->sms->send($phone, "Your Aveo code is {$code}. It expires in ".self::MINUTES_VALID.' minutes.');
     }
 }

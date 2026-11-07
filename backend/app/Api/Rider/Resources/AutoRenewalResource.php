@@ -6,7 +6,9 @@ use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\Subscriptions\Enums\AutoRenewalStatus;
+use Modules\Subscriptions\Enums\SeatStatus;
 use Modules\Subscriptions\Models\AutoRenewal;
+use Modules\Subscriptions\Models\Seat;
 
 /** @mixin AutoRenewal */
 class AutoRenewalResource extends JsonResource
@@ -24,7 +26,7 @@ class AutoRenewalResource extends JsonResource
             'status' => $this->status->value,
             'plan' => $this->plan->name,
             /** What is taken each time, e.g. "GHS 60" */
-            'amount_label' => Money::format($this->plan->price),
+            'amount_label' => Money::format($this->plan->price * $this->chargedFor()),
             /** e.g. "MTN MoMo" */
             'network' => config('payments.networks.'.$this->mandate?->network.'.label', ''),
             /** The last four digits of the wallet */
@@ -44,5 +46,11 @@ class AutoRenewalResource extends JsonResource
                 AutoRenewalStatus::Off => $this->last_error ?: 'Automatic renewal is off.',
             },
         ];
+    }
+
+    /** How many people each charge pays for: what she chose, or else what her seat holds now. */
+    private function chargedFor(): int
+    {
+        return $this->seats ?? max(1, (int) Seat::query()->where('rider_id', $this->rider_id)->whereIn('status', [SeatStatus::Reserved, SeatStatus::Active])->max('party'));
     }
 }

@@ -5,7 +5,9 @@ namespace Modules\Access\Providers;
 use App\Support\ModuleServiceProvider;
 use App\Support\Permissions\PermissionGroupDefinition;
 use App\Support\Scope;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Gate;
+use Modules\Access\Console\PruneLoginCodesCommand;
 use Modules\Access\Console\SyncAccessCommand;
 use Modules\Access\Models\Staff;
 
@@ -15,7 +17,10 @@ class AccessServiceProvider extends ModuleServiceProvider
     {
         parent::boot();
 
-        $this->commands([SyncAccessCommand::class]);
+        $this->commands([SyncAccessCommand::class, PruneLoginCodesCommand::class]);
+
+        // Needs `php artisan schedule:work` (or cron) running.
+        $this->callAfterResolving(Schedule::class, fn (Schedule $schedule) => $schedule->command('access:prune')->dailyAt('03:10'));
 
         // A super admin passes every platform check. This never applies to mobile accounts.
         Gate::before(fn ($user) => $user instanceof Staff && $user->isSuperAdmin() ? true : null);
@@ -36,6 +41,10 @@ class AccessServiceProvider extends ModuleServiceProvider
                 'access.accounts.view' => 'View mobile accounts',
                 'access.accounts.manage' => 'Give mobile accounts roles and switch them off',
             ], defaultRoles: ['operator']),
+            // Not given to operators by default. It shows the money.
+            new PermissionGroupDefinition('access.reports', 'Reports', Scope::Platform, [
+                'reports.pilot.view' => 'View the pilot report',
+            ]),
         ];
     }
 }

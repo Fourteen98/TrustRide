@@ -4,6 +4,7 @@ use App\Admin\AdminPanelProvider;
 use App\Api\ApiDocsServiceProvider;
 use App\Providers\AppServiceProvider;
 use Modules\Access\Providers\AccessServiceProvider;
+use Modules\Deliveries\Providers\DeliveriesServiceProvider;
 use Modules\Drivers\Providers\DriversServiceProvider;
 use Modules\Messaging\Providers\MessagingServiceProvider;
 use Modules\Network\Providers\NetworkServiceProvider;
@@ -24,6 +25,7 @@ return [
     SubscriptionsServiceProvider::class,
     TripsServiceProvider::class,
     SupportServiceProvider::class,
+    DeliveriesServiceProvider::class,
     PaymentsServiceProvider::class,
     MessagingServiceProvider::class,
 

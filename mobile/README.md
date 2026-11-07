@@ -1,4 +1,4 @@
-# TrustRide mobile app
+# Aveo mobile app
 
 One app for riders, drivers and mates, built with Expo and React Native. Everyone logs in the same way, with a phone number and a texted code. The home screen then follows the account's roles.
 
@@ -32,7 +32,7 @@ Press `a` for the Android emulator, `i` for the iOS simulator, or scan the QR co
 
 Restart `npx expo start` after changing `.env`.
 
-**Logging in while developing.** No SMS is sent yet. The code is written to `../backend/storage/logs/laravel.log`. Look for the line "Your TrustRide code is".
+**Logging in while developing.** No SMS is sent yet. The code is written to `../backend/storage/logs/laravel.log`. Look for the line "Your Aveo code is".
 
 ## Layout
 
@@ -71,6 +71,14 @@ A screen should be mostly these, with very little styling of its own.
 | `Notice` | An error or an info line |
 | `HomeHeader` | The name, Account link and role switcher on each home |
 | `ThemedText` | All other text, so colours and sizes come from the theme |
+| `MapSheet` | A screen that is a map with a sheet over it: map behind, bar on top, buttons above the sheet, a sheet that drags up |
+| `TripMap` | The native map: the blue dot, a route, a labelled stop, the van as a gold tag. `emphasis="crew"` and `badges` for the driver and mate. `ref` gives Route and Me. |
+| `MapTopBar`, `MapButton`, `MapChoices`, `SheetStatus` | The "Where to?" bar (or a screen's own control) and Help over a map, round buttons and a switch pill on a map, and the status line at the top of a sheet |
+| `SearchField` | The "Where to?" pill. With `onPress` it opens search; without, she types in it. |
+| `ActionMenu` | A menu that floats up from the bottom for the few things that can be done to one thing, such as today's ride |
+| `FloatingTabBar` | The tabs as a pill over the bottom of the screen. Screens inside the tabs keep clear of it through `Screen`. |
+| `Icon` | An Apple symbol on iPhone, a plain character elsewhere |
+| `Stepper` | A number picked with − and +, such as how many people travel with her |
 
 Two hooks do the work behind them:
 
@@ -156,17 +164,25 @@ Don't add `expo-location` or any location permission until release 2.
 
 ## The map
 
-`src/app/(app)/trip.tsx` shows the backend's own map page inside the app (`src/components/web-page.tsx`, a WebView on phones and an iframe on the web build). There is no map SDK and no map key in the app.
+`src/components/trip-map.tsx` draws the live map natively with `react-native-maps`: Apple Maps on iPhone, Google Maps on Android. It shows her own position as the blue dot (it asks for location permission, only while the app is open), the van gliding between positions, the road the van has driven, and the road still ahead. The small map on the home card and the full screen (`src/app/(app)/trip.tsx`) both use it. The web build has no native map, so `trip-map.web.tsx` shows the backend's own map page instead.
+
+Keys:
+
+- **Expo Go and the iPhone simulator:** nothing needed.
+- **iPhone builds:** nothing needed. Apple Maps has no key.
+- **Android builds:** `GOOGLE_MAPS_ANDROID_KEY` in `mobile/.env`, read by `app.config.js`. A key with "Maps SDK for Android" switched on, restricted to the package `com.aveo.app`. Rebuild after setting it.
+
+The road along the streets and "about 7 min away" come from the backend's Google key, not the app's. Without it the stops are joined with straight dashed lines and riders see "2 stops away".
 
 ## Seeing the real app, with the logo and splash
 
-Expo Go shows its own icon and splash, so the TrustRide ones never appear there. To see the app as it will ship, make a build on your Mac. It needs Xcode and nothing else: no Expo account and no Apple developer account for the simulator.
+Expo Go shows its own icon and splash, so the Aveo ones never appear there. To see the app as it will ship, make a build on your Mac. It needs Xcode and nothing else: no Expo account and no Apple developer account for the simulator.
 
 ```
 npx expo run:ios
 ```
 
-The first run takes several minutes. It creates an `ios` folder from `app.json` (not kept in git), builds the app, installs it on the simulator and opens it. After that, run `npx expo start` and open the TrustRide app from the simulator's home screen. Expo Go is still there next to it, and pressing `i` still opens Expo Go.
+The first run takes several minutes. It creates an `ios` folder from `app.json` (not kept in git), builds the app, installs it on the simulator and opens it. After that, run `npx expo start` and open the Aveo app from the simulator's home screen. Expo Go is still there next to it, and pressing `i` still opens Expo Go.
 
 Run it again whenever `app.json` or a package with native code changes (a new icon, `expo-location`, and so on). Ordinary screen changes don't need it.
 
@@ -174,7 +190,11 @@ For Android the same thing is `npx expo run:android`, which needs Android Studio
 
 ## Driver's commission
 
-`src/app/(app)/earnings.tsx`. Drivers only. It shows the monthly commission TrustRide pays and the last twelve months: assessment, bonus, and whether it was paid.
+`src/app/(app)/earnings.tsx`. Drivers only. It shows the monthly commission Aveo pays and the last twelve months: assessment, bonus, and whether it was paid.
+
+## Parcels (Aveo Ox)
+
+`src/app/(app)/(tabs)/parcels.tsx`, with the pieces in `src/ox/`. The tab shows only to a driver whose work includes Ox (`work_types` in the account, set in the console). It lists today's parcel runs. He starts the run, presses "Collected" at each business (each customer is then texted a code), and at each door types the customer's code or says why it couldn't be delivered. Then he finishes the run. Runs are built by an operator in the console. In the demo, log in as 0245550201 (Kojo) to find a Lapaz run already on the road.
 
 ## App notifications
 

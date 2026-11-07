@@ -14,7 +14,7 @@ class AutoRenewal extends Model
     /** What Payments is told owns the mandate, so the answer finds its way back here. */
     public const OWNER = 'auto_renewal';
 
-    protected $fillable = ['rider_id', 'plan_id', 'mandate_id', 'status', 'failures', 'last_error', 'last_attempt_on'];
+    protected $fillable = ['rider_id', 'plan_id', 'mandate_id', 'status', 'failures', 'last_error', 'last_attempt_on', 'seats'];
 
     protected $attributes = ['status' => 'pending', 'failures' => 0];
 

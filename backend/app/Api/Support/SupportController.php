@@ -13,7 +13,7 @@ use Modules\Support\Models\SupportCase;
 class SupportController
 {
     /**
-     * Her conversation with TrustRide.
+     * Her conversation with Aveo.
      *
      * The open case if she has one, otherwise one resolved in the last few days so she can read the answer.
      * Null if there is neither. Ask again every so often while a case is open, to pick up replies.
@@ -40,15 +40,15 @@ class SupportController
             'categories' => collect(CaseCategory::cases())->map(fn (CaseCategory $category) => ['key' => $category->value, 'label' => $category->label()])->all(),
             'support' => [
                 /** @var string|null */
-                'phone' => config('trustride.support.phone'),
+                'phone' => config('aveo.support.phone'),
                 /** @var string|null */
-                'whatsapp' => config('trustride.support.whatsapp'),
+                'whatsapp' => config('aveo.support.whatsapp'),
             ],
         ]);
     }
 
     /**
-     * Write to TrustRide.
+     * Write to Aveo.
      *
      * Her first message opens a case and needs a category. Anything she sends while it is open is added to it.
      * "I don't feel safe" is treated as an incident at once.

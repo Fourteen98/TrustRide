@@ -19,6 +19,16 @@ return [
     // charge leaves her time to pay by hand. It is tried once a day until it works or gives up.
     'auto_renew_charge_days_before' => (int) env('AUTO_RENEW_CHARGE_DAYS_BEFORE', 1),
 
+    // A rider's data is deleted this many days after she last had anything with us: a seat, a subscription
+    // or an application. 0 keeps it until she asks. Not decided by the business yet, so it starts at 0.
+    'rider_retention_days' => (int) env('RIDER_RETENTION_DAYS', 0),
+
     // Charges in a row that may fail before automatic renewal is switched off and she is told.
     'auto_renew_max_failures' => (int) env('AUTO_RENEW_MAX_FAILURES', 3),
+
+    // On vans that allow it, how many seats a rider may hold for people travelling with her, on top of her own.
+    'extra_seats_max' => (int) env('EXTRA_SEATS_MAX', 3),
+
+    // How many days ahead she may hold seats for people with her, on vans where they pay the fare.
+    'guest_days_ahead' => (int) env('GUEST_DAYS_AHEAD', 14),
 ];

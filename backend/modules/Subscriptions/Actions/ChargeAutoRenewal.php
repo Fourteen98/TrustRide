@@ -46,7 +46,7 @@ class ChargeAutoRenewal
         $renewal->update(['last_attempt_on' => $today]);
 
         try {
-            $purchase = $this->purchase->handle($renewal->rider, $renewal->plan, (string) $renewal->mandate->phone, $renewal->mandate->network, $renewal->mandate);
+            $purchase = $this->purchase->handle($renewal->rider, $renewal->plan, (string) $renewal->mandate->phone, $renewal->mandate->network, $renewal->mandate, $renewal->seats);
             $purchase->update(['auto_renewal_id' => $renewal->id]);
 
             return 'charged';

@@ -49,6 +49,8 @@ class AutoRenewalController
             'network' => ['required', Rule::in(array_keys(config('payments.networks')))],
             /** The wallet to charge. Leave out to use the number she logs in with. */
             'phone' => ['nullable', 'string'],
+            /** How many people each charge is for, her included. Only above 1 on vans that add people to her plan. */
+            'seats' => ['nullable', 'integer', 'min:1', 'max:9'],
         ]);
 
         $plan = Plan::query()->where('is_active', true)->find($data['plan_id']) ?? throw new DomainException('That plan is no longer sold.');
@@ -59,7 +61,7 @@ class AutoRenewalController
 
         $phone = empty($data['phone']) ? $request->user()->phone : Phone::normalise($data['phone']);
 
-        $renewal = $start->handle($this->riderOrFail($request), $plan, $phone, $data['network']);
+        $renewal = $start->handle($this->riderOrFail($request), $plan, $phone, $data['network'], $data['seats'] ?? null);
 
         return response()->json(['auto_renewal' => new AutoRenewalResource($renewal->load(['plan', 'mandate']))], 201);
     }

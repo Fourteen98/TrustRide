@@ -2,6 +2,7 @@
 
 use App\Api\Driver\CrewController;
 use App\Api\Driver\EarningsController;
+use App\Api\Driver\ParcelController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,4 +22,14 @@ Route::prefix('driver/v1')->middleware('auth:app')->group(function () {
     Route::post('trip/pickups', [CrewController::class, 'pickup'])->middleware('permission:trips.pickups.mark,app');
     Route::get('earnings', [EarningsController::class, 'show'])->middleware('permission:drivers.commission.view,app');
     Route::post('trip/location', [CrewController::class, 'location'])->middleware('permission:trips.location.send,app');
+
+    // Aveo Ox: his parcel runs.
+    Route::prefix('parcels')->middleware('permission:deliveries.runs.drive,app')->group(function () {
+        Route::get('/', [ParcelController::class, 'today']);
+        Route::post('start', [ParcelController::class, 'start']);
+        Route::post('collect', [ParcelController::class, 'collect']);
+        Route::post('deliver', [ParcelController::class, 'deliver'])->middleware('throttle:30,1');
+        Route::post('not-delivered', [ParcelController::class, 'notDelivered']);
+        Route::post('finish', [ParcelController::class, 'finish']);
+    });
 });

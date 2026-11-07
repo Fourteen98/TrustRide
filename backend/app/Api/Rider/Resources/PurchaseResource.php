@@ -22,8 +22,12 @@ class PurchaseResource extends JsonResource
              */
             'status' => $this->status->value,
             'plan' => $this->plan->name,
+            /** In pesewas */
+            'amount' => $this->amount,
             /** e.g. "GHS 60" */
             'amount_label' => Money::format($this->amount),
+            /** How many people the plan is for, her included */
+            'seats' => $this->seats,
             /** e.g. "MTN MoMo" */
             'network' => config("payments.networks.{$this->network}.label", $this->network),
             /** @var string A sentence for her, saying where things stand */

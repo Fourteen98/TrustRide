@@ -14,7 +14,7 @@ use Modules\Support\Events\IncidentRaised;
 use Modules\Support\Models\SupportCase;
 
 /**
- * Someone writes to TrustRide from the app.
+ * Someone writes to Aveo from the app.
  *
  * A person has one open case at a time. Her first message opens it. Anything she writes
  * while it is open is added to it. Once it is resolved, her next message opens a new one.

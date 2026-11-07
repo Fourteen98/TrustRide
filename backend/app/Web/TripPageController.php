@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Trips\Models\Trip;
 use Modules\Trips\Queries\TripProgress;
+use Modules\Trips\Queries\TripTrail;
 
 /**
  * The live map page behind a share link: /t/{public id}
@@ -27,7 +28,7 @@ class TripPageController
         ]);
     }
 
-    public function data(Request $request, string $publicId, TripProgress $progress): JsonResponse
+    public function data(Request $request, string $publicId, TripProgress $progress, TripTrail $trail): JsonResponse
     {
         $trip = $this->trip($publicId);
 
@@ -36,6 +37,8 @@ class TripPageController
             'car_number' => $trip->run->vehicle->registration_number,
             'car_colour' => $trip->run->vehicle->colour,
             ...$progress->handle($trip->run, $trip, $request->integer('stop') ?: null),
+            // The road the van has actually driven today, for the line on the map. Only while it is running.
+            'trail' => $trail->handle($trip),
         ]);
     }
 

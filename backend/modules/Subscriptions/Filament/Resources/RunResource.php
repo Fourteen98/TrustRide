@@ -74,7 +74,7 @@ class RunResource extends Resource
                     ->where('driver_id', $get('driver_id'))->where('status', VehicleStatus::Approved)
                     ->get()->mapWithKeys(fn (Vehicle $vehicle) => [$vehicle->id => "{$vehicle->registration_number} ({$vehicle->colour}, {$vehicle->seats_total} seats)"])),
             TimePicker::make('departs_at')->label('Leaves the first stop at')->required()->seconds(false),
-            TextInput::make('seats_held')->label('Seats held for TrustRide')->numeric()->required()->minValue(1),
+            TextInput::make('seats_held')->label('Seats held for Aveo')->numeric()->required()->minValue(1),
             CheckboxList::make('days_of_week')->label('Days')->options(self::DAYS)->columns(7)->required()
                 ->default([1, 2, 3, 4, 5])->columnSpanFull(),
             Toggle::make('is_active')->label('Running')->default(true),
@@ -94,9 +94,9 @@ class RunResource extends Resource
                 TextColumn::make('driver.name')->searchable(),
                 TextColumn::make('vehicle.registration_number')->label('Car'),
                 TextColumn::make('seats_held')->label('Held'),
-                TextColumn::make('taken_seats_count')->counts('takenSeats')->label('Taken'),
+                TextColumn::make('taken_seats_sum_party')->sum('takenSeats', 'party')->label('Taken')->default(0),
                 TextColumn::make('free')->label('Free')->badge()
-                    ->state(fn (Run $record) => max(0, $record->seats_held - $record->taken_seats_count))
+                    ->state(fn (Run $record) => max(0, $record->seats_held - (int) $record->taken_seats_sum_party))
                     ->color(fn (int $state) => $state === 0 ? 'danger' : ($state <= 2 ? 'warning' : 'success')),
                 IconColumn::make('is_active')->label('Running')->boolean(),
             ])

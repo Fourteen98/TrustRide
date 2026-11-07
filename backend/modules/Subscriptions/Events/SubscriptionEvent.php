@@ -31,12 +31,13 @@ abstract class SubscriptionEvent extends BaseDomainEvent
         $seats = Seat::query()
             ->where('rider_id', $subscription->rider_id)
             ->whereIn('status', [SeatStatus::Active, SeatStatus::Reserved])
-            ->with(['run.route.stops', 'run.driver', 'run.vehicle', 'stop'])
+            ->with(['run.route.stops', 'run.driver', 'run.vehicle'])
             ->get()
             ->map(fn (Seat $seat) => [
                 'direction' => $seat->run->direction->value,
                 'route' => $seat->run->route->name,
-                'stop' => $seat->stop->name,
+                // Where and when she gets on: her own stop going out, where she goes coming back.
+                'stop' => $seat->run->route->stops->firstWhere('id', $seat->boardsAt())->name,
                 'time' => $seat->pickupTime(),
                 'driver_name' => $seat->run->driver->name,
                 'car_number' => $seat->run->vehicle->registration_number,

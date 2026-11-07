@@ -11,6 +11,7 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -19,14 +20,18 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Carbon;
 use Modules\Drivers\Actions\ApproveDriver;
 use Modules\Drivers\Actions\RecordAssessment;
 use Modules\Drivers\Actions\RegisterMate;
+use Modules\Drivers\Actions\SetDriverStage;
 use Modules\Drivers\Actions\SuspendDriver;
 use Modules\Drivers\Enums\AssessmentOutcome;
+use Modules\Drivers\Enums\DriverStage;
 use Modules\Drivers\Enums\DriverStatus;
+use Modules\Drivers\Enums\WorkType;
 use Modules\Drivers\Filament\Resources\DriverResource\Pages\ManageDrivers;
 use Modules\Drivers\Filament\VettingActions;
 use Modules\Drivers\Models\Driver;
@@ -59,9 +64,12 @@ class DriverResource extends Resource
             DatePicker::make('licence_expires_on')->label('Licence expires'),
             TextInput::make('ghana_card_number')->maxLength(30),
             MoneyInput::make('monthly_commission')->label('Monthly commission')
-                ->helperText('What TrustRide pays him each month for holding seats.'),
+                ->helperText('What Aveo pays him each month for holding seats.'),
             TextInput::make('next_of_kin_name')->maxLength(100),
             TextInput::make('next_of_kin_phone')->tel()->maxLength(20),
+            CheckboxList::make('work_types')->label('Work he does')->required()
+                ->options(Options::enum(WorkType::class))->default([WorkType::Ride->value])
+                ->helperText('Ox is parcel delivery. It has no screens yet; this only records who can do it.'),
         ]);
     }
 
@@ -72,9 +80,15 @@ class DriverResource extends Resource
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('phone')->searchable(),
                 Columns::status('status', ['approved' => 'success', 'suspended' => 'danger', 'pending' => 'warning']),
+                Columns::status('stage', ['daily_contract' => 'gray', 'assessed' => 'info', 'partner' => 'success']),
+                TextColumn::make('work_types')->label('Work')->badge()
+                    ->formatStateUsing(fn (WorkType $state) => $state->label()),
                 Columns::money('monthly_commission')->label('Commission'),
                 TextColumn::make('vehicles.registration_number')->label('Vehicles')->placeholder('None'),
                 TextColumn::make('mates.name')->label('Mates')->placeholder('None'),
+            ])
+            ->filters([
+                SelectFilter::make('stage')->options(Options::enum(DriverStage::class)),
             ])
             ->recordActions([
                 VettingActions::checklist(),
@@ -110,6 +124,19 @@ class DriverResource extends Resource
                             $record, Carbon::parse($data['month']), AssessmentOutcome::from($data['outcome']), Guarded::staff(), $data['notes'] ?? null, (int) $data['bonus'],
                         )))
                         ->successNotificationTitle('Assessment recorded'),
+                    Action::make('stage')
+                        ->label('Change stage')->icon(Heroicon::OutlinedArrowTrendingUp)
+                        ->visible(fn () => Guarded::can('drivers.assess'))
+                        ->fillForm(fn (Driver $record) => ['stage' => $record->stage->value])
+                        ->schema([
+                            Select::make('stage')->required()->options(Options::enum(DriverStage::class))
+                                ->helperText('Moving up needs an approved driver with a monthly assessment on record.'),
+                            Textarea::make('note')->rows(2)->maxLength(500)->helperText('Why, for whoever looks later.'),
+                        ])
+                        ->action(Guarded::calls(fn (Driver $record, array $data) => app(SetDriverStage::class)->handle(
+                            $record, DriverStage::from($data['stage']), Guarded::staff(), $data['note'] ?? null,
+                        )))
+                        ->successNotificationTitle('Stage changed'),
                     Action::make('suspend')
                         ->icon(Heroicon::OutlinedNoSymbol)->color('danger')
                         ->visible(fn (Driver $record) => Guarded::can('drivers.manage') && $record->status !== DriverStatus::Suspended)

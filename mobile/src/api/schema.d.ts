@@ -93,8 +93,8 @@ export interface paths {
         };
         /**
          * The driver's commission and assessments
-         * @description What TrustRide pays him each month, and the last twelve months: how he was assessed and whether
-         *     he has been paid. This is the commission only. Fares never pass through TrustRide.
+         * @description What Aveo pays him each month, and the last twelve months: how he was assessed and whether
+         *     he has been paid. This is the commission only. Fares never pass through Aveo.
          */
         get: operations["earnings.show"];
         put?: never;
@@ -120,6 +120,120 @@ export interface paths {
          *     Send from both the driver's and the mate's phone. The newest one wins.
          */
         post: operations["crew.location"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/driver/v1/parcels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * His parcel runs: today's, and any still out from before
+         * @description Each run lists the businesses to collect from, then every drop in order with the customer's phone to call.
+         */
+        get: operations["parcel.today"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/driver/v1/parcels/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set off on a run. Then he can collect parcels at each business */
+        post: operations["parcel.start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/driver/v1/parcels/collect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * He has collected a business's parcels
+         * @description Each customer is texted that hers is on its way, with the code to give him at the door.
+         */
+        post: operations["parcel.collect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/driver/v1/parcels/deliver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The customer has her parcel: the code she gave him
+         * @description A wrong code says how many tries are left. After the last, he calls the customer or Aveo.
+         */
+        post: operations["parcel.deliver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/driver/v1/parcels/not-delivered": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** He couldn't hand it over. The customer is told why */
+        post: operations["parcel.notDelivered"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/driver/v1/parcels/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The run is over
+         * @description Every collected parcel must be marked first. Any he never collected go back in the queue for tomorrow.
+         */
+        post: operations["parcel.finish"];
         delete?: never;
         options?: never;
         head?: never;
@@ -257,7 +371,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Her conversation with TrustRide
+         * Her conversation with Aveo
          * @description The open case if she has one, otherwise one resolved in the last few days so she can read the answer.
          *     Null if there is neither. Ask again every so often while a case is open, to pick up replies.
          */
@@ -280,7 +394,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Write to TrustRide
+         * Write to Aveo
          * @description Her first message opens a case and needs a category. Anything she sends while it is open is added to it.
          *     "I don't feel safe" is treated as an incident at once.
          */
@@ -333,6 +447,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rider/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where to? Vans that go to a place
+         * @description Matches stop names, landmarks and route destinations. Send her position to have the stop nearest to her
+         *     picked for getting on, with how far it is. Nearest first. `apply_stop_id` and `departs_at` fill in an application.
+         */
+        get: operations["search.index"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rider/v1/application": {
         parameters: {
             query?: never;
@@ -349,6 +484,27 @@ export interface paths {
         post: operations["application.store"];
         /** Withdraw the application that is waiting */
         delete: operations["application.destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rider/v1/destination": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Say where she goes on her route
+         * @description The stop she gets off at going out, and gets on at coming back. It is set on all her seats on that route.
+         *     The stop must come after hers. The end of the route is where everyone goes unless they say otherwise.
+         */
+        put: operations["destination.update"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -473,6 +629,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rider/v1/trips/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Her past trips, newest first, 20 a page
+         * @description Each one says whether the mate marked her on board, not at the stop, or neither,
+         *     or that she had said she would not ride that day.
+         */
+        get: operations["trip.history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rider/v1/trips/alight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * She has got down
+         * @description Records where and when, for today's trip on that run. Saying it twice changes nothing.
+         *     If the mate forgot to mark her on board, this marks her on board too.
+         */
+        post: operations["trip.alight"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rider/v1/route-map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Her route on a map, whether or not a van is on the road
+         * @description One entry for each seat she holds, reserved or paid. The home screen draws it under her own position,
+         *     so she can see her stop and the road the van takes. Uses no paid service: the road was traced once and stored.
+         */
+        get: operations["trip.route"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rider/v1/absences/preview": {
         parameters: {
             query?: never;
@@ -507,6 +726,27 @@ export interface paths {
          * @description This can't be taken back from the app. If the day is credited, her subscription ends a day later.
          */
         post: operations["absence.store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rider/v1/guests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Hold seats for people travelling with her
+         * @description For one day on one of her seats, on vans where each person pays the fare to the mate. Sending again for the same
+         *     day changes the number, and 0 lets the seats go. Refused once the van has passed her stop that day.
+         */
+        put: operations["guest.update"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -591,13 +831,15 @@ export interface components {
              * @enum {string}
              */
             preferred_channel: "push" | "sms" | "whatsapp";
-            /** @description The ways of reaching her that are switched on at TrustRide, to offer as choices. */
+            /** @description The ways of reaching her that are switched on at Aveo, to offer as choices. */
             channels: ("push" | "sms" | "whatsapp")[];
             roles: {
                 name: string;
                 label: string | null;
                 screens: string | null;
             }[];
+            /** @description The work a driver does for Aveo, so the app shows only his screens. Empty for anyone not a driver. */
+            work_types: ("ride" | "ox")[];
             /** @description Every permission the account holds, e.g. subscriptions.buy */
             permissions: string[];
         };
@@ -669,7 +911,7 @@ export interface components {
             /** @description What was said, oldest first. Staff notes are not included. */
             messages: {
                 /** @enum {string} */
-                from: "you" | "trustride";
+                from: "you" | "aveo";
                 body: string;
                 at: string;
             }[];
@@ -709,8 +951,12 @@ export interface components {
              */
             status: "pending" | "activated" | "failed" | "needs_attention";
             plan: string;
+            /** @description In pesewas */
+            amount: number;
             /** @description e.g. "GHS 60" */
             amount_label: string;
+            /** @description How many people the plan is for, her included */
+            seats: number;
             /** @description e.g. "MTN MoMo" */
             network: string;
             /** @description A sentence for her, saying where things stand */
@@ -720,21 +966,43 @@ export interface components {
         /** SeatResource */
         SeatResource: {
             id: number;
+            run_id: number;
             /** @description reserved (approved, not yet paid) or active */
             status: string;
             /** @description outbound (to the destination) or return */
             direction: string;
             route: string;
+            /** @description Where this trip goes: the route's destination, or where it starts for a trip back. "Circle" */
+            heading_to: string | null;
+            /** @description Where she gets on: her own stop going out, her destination coming back */
             stop: string;
             landmark: string | null;
-            /** @description When the van reaches her stop, e.g. "06:38" */
+            /** @description When the van reaches the stop she gets on at, e.g. "06:38" */
             time: string | null;
+            /** @description Where she gets off */
+            gets_off: string;
+            /** @description When the van reaches it, by the timetable */
+            off_time: string | null;
+            /** @description Her own stop, near home */
+            home_stop_id: number;
+            /** @description The stop she goes to. Change it with `PUT destination`. */
+            destination_stop_id: number;
             /** @description ISO weekdays the van runs, 1 for Monday to 7 for Sunday */
             days: number[];
             driver_name: string;
             car_number: string;
             car_colour: string;
             car_make: string | null;
+            /**
+             * @description Whether she may hold seats on this van for people with her: no, for a day with each paying the mate,
+             *     or on her plan
+             * @enum {string}
+             */
+            extra_seats: "off" | "fare" | "plan";
+            /** @description How many this seat is for, her included: above 1 when people travel with her on her plan */
+            party: number;
+            /** @description The most a plan may be for on this van, her included */
+            max_party: number;
         };
         /** SubscriptionResource */
         SubscriptionResource: {
@@ -786,6 +1054,18 @@ export interface components {
                 };
             };
         };
+        /** @description Not found */
+        ModelNotFoundException: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @description Error overview. */
+                    message: string;
+                };
+            };
+        };
     };
     parameters: never;
     requestBodies: never;
@@ -821,7 +1101,7 @@ export interface operations {
                             /** @enum {string} */
                             status: "not_started" | "running" | "ended";
                             started_at: string | null;
-                            /** @description Stops in the order the van reaches them, each with who gets on there today */
+                            /** @description Stops in the order the van reaches them, each with who gets on and who gets off there today */
                             stops: {
                                 stop_id: number;
                                 name: string;
@@ -832,10 +1112,68 @@ export interface operations {
                                     rider_id: number;
                                     name: string;
                                     absent: boolean;
+                                    on_plan: number;
+                                    paying_fare: number;
+                                    gets_off: string;
                                     /** @enum {string|null} */
                                     pickup: "picked_up" | "missed" | null;
                                 }[];
+                                getting_off: {
+                                    rider_id: number;
+                                    name: string;
+                                    people: number;
+                                    on_board: boolean;
+                                }[];
                             }[];
+                            /** @description Everyone on the van now, in the order they get off. Empty unless the trip is running. */
+                            on_board: {
+                                rider_id: number;
+                                name: string;
+                                people: number;
+                                gets_off: string;
+                                off_time: string | null;
+                            }[];
+                            map: {
+                                /** @description Every stop in travelling order, the last one too */
+                                stops: {
+                                    id: number;
+                                    name: string;
+                                    landmark: string | null;
+                                    time: string | null;
+                                    latitude: number | null;
+                                    longitude: number | null;
+                                    reached: boolean;
+                                }[];
+                                /**
+                                 * @description The road, as [latitude, longitude]. Null until traced: then join the stops.. The road the run follows, in the direction of travel. Null until the route has been traced,
+                                 *     and then maps join the stops with straight lines.
+                                 */
+                                path: [
+                                    number,
+                                    number
+                                ][] | null;
+                                /** @description The van, while the trip runs. The position is only given out while the trip is running. */
+                                position: {
+                                    latitude: number;
+                                    longitude: number;
+                                    at: string;
+                                    live: boolean;
+                                    heading: number | null;
+                                } | null;
+                                /** @description The road driven so far today */
+                                trail: [
+                                    number,
+                                    number
+                                ][];
+                                /** @description Aveo's other vans on the road now, unnamed */
+                                others: {
+                                    key: string;
+                                    latitude: number;
+                                    longitude: number;
+                                    heading: number | null;
+                                    live: boolean;
+                                }[];
+                            };
                         }[];
                         /** @description Seconds between positions the phone should send while a trip is running */
                         ping_interval_seconds: number;
@@ -878,7 +1216,7 @@ export interface operations {
                             /** @enum {string} */
                             status: "not_started" | "running" | "ended";
                             started_at: string | null;
-                            /** @description Stops in the order the van reaches them, each with who gets on there today */
+                            /** @description Stops in the order the van reaches them, each with who gets on and who gets off there today */
                             stops: {
                                 stop_id: number;
                                 name: string;
@@ -889,10 +1227,68 @@ export interface operations {
                                     rider_id: number;
                                     name: string;
                                     absent: boolean;
+                                    on_plan: number;
+                                    paying_fare: number;
+                                    gets_off: string;
                                     /** @enum {string|null} */
                                     pickup: "picked_up" | "missed" | null;
                                 }[];
+                                getting_off: {
+                                    rider_id: number;
+                                    name: string;
+                                    people: number;
+                                    on_board: boolean;
+                                }[];
                             }[];
+                            /** @description Everyone on the van now, in the order they get off. Empty unless the trip is running. */
+                            on_board: {
+                                rider_id: number;
+                                name: string;
+                                people: number;
+                                gets_off: string;
+                                off_time: string | null;
+                            }[];
+                            map: {
+                                /** @description Every stop in travelling order, the last one too */
+                                stops: {
+                                    id: number;
+                                    name: string;
+                                    landmark: string | null;
+                                    time: string | null;
+                                    latitude: number | null;
+                                    longitude: number | null;
+                                    reached: boolean;
+                                }[];
+                                /**
+                                 * @description The road, as [latitude, longitude]. Null until traced: then join the stops.. The road the run follows, in the direction of travel. Null until the route has been traced,
+                                 *     and then maps join the stops with straight lines.
+                                 */
+                                path: [
+                                    number,
+                                    number
+                                ][] | null;
+                                /** @description The van, while the trip runs. The position is only given out while the trip is running. */
+                                position: {
+                                    latitude: number;
+                                    longitude: number;
+                                    at: string;
+                                    live: boolean;
+                                    heading: number | null;
+                                } | null;
+                                /** @description The road driven so far today */
+                                trail: [
+                                    number,
+                                    number
+                                ][];
+                                /** @description Aveo's other vans on the road now, unnamed */
+                                others: {
+                                    key: string;
+                                    latitude: number;
+                                    longitude: number;
+                                    heading: number | null;
+                                    live: boolean;
+                                }[];
+                            };
                         };
                     };
                 };
@@ -934,7 +1330,7 @@ export interface operations {
                             /** @enum {string} */
                             status: "not_started" | "running" | "ended";
                             started_at: string | null;
-                            /** @description Stops in the order the van reaches them, each with who gets on there today */
+                            /** @description Stops in the order the van reaches them, each with who gets on and who gets off there today */
                             stops: {
                                 stop_id: number;
                                 name: string;
@@ -945,10 +1341,68 @@ export interface operations {
                                     rider_id: number;
                                     name: string;
                                     absent: boolean;
+                                    on_plan: number;
+                                    paying_fare: number;
+                                    gets_off: string;
                                     /** @enum {string|null} */
                                     pickup: "picked_up" | "missed" | null;
                                 }[];
+                                getting_off: {
+                                    rider_id: number;
+                                    name: string;
+                                    people: number;
+                                    on_board: boolean;
+                                }[];
                             }[];
+                            /** @description Everyone on the van now, in the order they get off. Empty unless the trip is running. */
+                            on_board: {
+                                rider_id: number;
+                                name: string;
+                                people: number;
+                                gets_off: string;
+                                off_time: string | null;
+                            }[];
+                            map: {
+                                /** @description Every stop in travelling order, the last one too */
+                                stops: {
+                                    id: number;
+                                    name: string;
+                                    landmark: string | null;
+                                    time: string | null;
+                                    latitude: number | null;
+                                    longitude: number | null;
+                                    reached: boolean;
+                                }[];
+                                /**
+                                 * @description The road, as [latitude, longitude]. Null until traced: then join the stops.. The road the run follows, in the direction of travel. Null until the route has been traced,
+                                 *     and then maps join the stops with straight lines.
+                                 */
+                                path: [
+                                    number,
+                                    number
+                                ][] | null;
+                                /** @description The van, while the trip runs. The position is only given out while the trip is running. */
+                                position: {
+                                    latitude: number;
+                                    longitude: number;
+                                    at: string;
+                                    live: boolean;
+                                    heading: number | null;
+                                } | null;
+                                /** @description The road driven so far today */
+                                trail: [
+                                    number,
+                                    number
+                                ][];
+                                /** @description Aveo's other vans on the road now, unnamed */
+                                others: {
+                                    key: string;
+                                    latitude: number;
+                                    longitude: number;
+                                    heading: number | null;
+                                    live: boolean;
+                                }[];
+                            };
                         };
                     };
                 };
@@ -992,7 +1446,7 @@ export interface operations {
                             /** @enum {string} */
                             status: "not_started" | "running" | "ended";
                             started_at: string | null;
-                            /** @description Stops in the order the van reaches them, each with who gets on there today */
+                            /** @description Stops in the order the van reaches them, each with who gets on and who gets off there today */
                             stops: {
                                 stop_id: number;
                                 name: string;
@@ -1003,10 +1457,68 @@ export interface operations {
                                     rider_id: number;
                                     name: string;
                                     absent: boolean;
+                                    on_plan: number;
+                                    paying_fare: number;
+                                    gets_off: string;
                                     /** @enum {string|null} */
                                     pickup: "picked_up" | "missed" | null;
                                 }[];
+                                getting_off: {
+                                    rider_id: number;
+                                    name: string;
+                                    people: number;
+                                    on_board: boolean;
+                                }[];
                             }[];
+                            /** @description Everyone on the van now, in the order they get off. Empty unless the trip is running. */
+                            on_board: {
+                                rider_id: number;
+                                name: string;
+                                people: number;
+                                gets_off: string;
+                                off_time: string | null;
+                            }[];
+                            map: {
+                                /** @description Every stop in travelling order, the last one too */
+                                stops: {
+                                    id: number;
+                                    name: string;
+                                    landmark: string | null;
+                                    time: string | null;
+                                    latitude: number | null;
+                                    longitude: number | null;
+                                    reached: boolean;
+                                }[];
+                                /**
+                                 * @description The road, as [latitude, longitude]. Null until traced: then join the stops.. The road the run follows, in the direction of travel. Null until the route has been traced,
+                                 *     and then maps join the stops with straight lines.
+                                 */
+                                path: [
+                                    number,
+                                    number
+                                ][] | null;
+                                /** @description The van, while the trip runs. The position is only given out while the trip is running. */
+                                position: {
+                                    latitude: number;
+                                    longitude: number;
+                                    at: string;
+                                    live: boolean;
+                                    heading: number | null;
+                                } | null;
+                                /** @description The road driven so far today */
+                                trail: [
+                                    number,
+                                    number
+                                ][];
+                                /** @description Aveo's other vans on the road now, unnamed */
+                                others: {
+                                    key: string;
+                                    latitude: number;
+                                    longitude: number;
+                                    heading: number | null;
+                                    live: boolean;
+                                }[];
+                            };
                         };
                     };
                 };
@@ -1090,6 +1602,393 @@ export interface operations {
                         /** @description How many were kept. 0 with `running: false` means stop sending. */
                         kept: number;
                         running: boolean;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "parcel.today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        runs: {
+                            run_id: number;
+                            zone: string;
+                            date: string;
+                            /** @enum {string} */
+                            status: "planned" | "out" | "done";
+                            pickups: {
+                                business_id: number;
+                                name: string;
+                                address: string;
+                                landmark: string | null;
+                                phone: string;
+                                parcels: number;
+                                collected: boolean;
+                            }[];
+                            drops: {
+                                delivery_id: number;
+                                position: number;
+                                business: string;
+                                reference: string | null;
+                                customer_name: string;
+                                customer_phone: string;
+                                address: string;
+                                landmark: string | null;
+                                notes: string | null;
+                                /** @enum {string} */
+                                status: "pending" | "assigned" | "picked_up" | "delivered" | "failed" | "cancelled";
+                                failure_reason: string | null;
+                            }[];
+                            counts: {
+                                total: number;
+                                delivered: number;
+                                failed: number;
+                                to_collect: number;
+                                with_driver: number;
+                            };
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "parcel.start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    run_id: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        run: {
+                            run_id: number;
+                            zone: string;
+                            date: string;
+                            /** @enum {string} */
+                            status: "planned" | "out" | "done";
+                            pickups: {
+                                business_id: number;
+                                name: string;
+                                address: string;
+                                landmark: string | null;
+                                phone: string;
+                                parcels: number;
+                                collected: boolean;
+                            }[];
+                            drops: {
+                                delivery_id: number;
+                                position: number;
+                                business: string;
+                                reference: string | null;
+                                customer_name: string;
+                                customer_phone: string;
+                                address: string;
+                                landmark: string | null;
+                                notes: string | null;
+                                /** @enum {string} */
+                                status: "pending" | "assigned" | "picked_up" | "delivered" | "failed" | "cancelled";
+                                failure_reason: string | null;
+                            }[];
+                            counts: {
+                                total: number;
+                                delivered: number;
+                                failed: number;
+                                to_collect: number;
+                                with_driver: number;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "parcel.collect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    run_id: number;
+                    business_id: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        run: {
+                            run_id: number;
+                            zone: string;
+                            date: string;
+                            /** @enum {string} */
+                            status: "planned" | "out" | "done";
+                            pickups: {
+                                business_id: number;
+                                name: string;
+                                address: string;
+                                landmark: string | null;
+                                phone: string;
+                                parcels: number;
+                                collected: boolean;
+                            }[];
+                            drops: {
+                                delivery_id: number;
+                                position: number;
+                                business: string;
+                                reference: string | null;
+                                customer_name: string;
+                                customer_phone: string;
+                                address: string;
+                                landmark: string | null;
+                                notes: string | null;
+                                /** @enum {string} */
+                                status: "pending" | "assigned" | "picked_up" | "delivered" | "failed" | "cancelled";
+                                failure_reason: string | null;
+                            }[];
+                            counts: {
+                                total: number;
+                                delivered: number;
+                                failed: number;
+                                to_collect: number;
+                                with_driver: number;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            404: components["responses"]["ModelNotFoundException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "parcel.deliver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    delivery_id: number;
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        run: {
+                            run_id: number;
+                            zone: string;
+                            date: string;
+                            /** @enum {string} */
+                            status: "planned" | "out" | "done";
+                            pickups: {
+                                business_id: number;
+                                name: string;
+                                address: string;
+                                landmark: string | null;
+                                phone: string;
+                                parcels: number;
+                                collected: boolean;
+                            }[];
+                            drops: {
+                                delivery_id: number;
+                                position: number;
+                                business: string;
+                                reference: string | null;
+                                customer_name: string;
+                                customer_phone: string;
+                                address: string;
+                                landmark: string | null;
+                                notes: string | null;
+                                /** @enum {string} */
+                                status: "pending" | "assigned" | "picked_up" | "delivered" | "failed" | "cancelled";
+                                failure_reason: string | null;
+                            }[];
+                            counts: {
+                                total: number;
+                                delivered: number;
+                                failed: number;
+                                to_collect: number;
+                                with_driver: number;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "parcel.notDelivered": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    delivery_id: number;
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        run: {
+                            run_id: number;
+                            zone: string;
+                            date: string;
+                            /** @enum {string} */
+                            status: "planned" | "out" | "done";
+                            pickups: {
+                                business_id: number;
+                                name: string;
+                                address: string;
+                                landmark: string | null;
+                                phone: string;
+                                parcels: number;
+                                collected: boolean;
+                            }[];
+                            drops: {
+                                delivery_id: number;
+                                position: number;
+                                business: string;
+                                reference: string | null;
+                                customer_name: string;
+                                customer_phone: string;
+                                address: string;
+                                landmark: string | null;
+                                notes: string | null;
+                                /** @enum {string} */
+                                status: "pending" | "assigned" | "picked_up" | "delivered" | "failed" | "cancelled";
+                                failure_reason: string | null;
+                            }[];
+                            counts: {
+                                total: number;
+                                delivered: number;
+                                failed: number;
+                                to_collect: number;
+                                with_driver: number;
+                            };
+                        };
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "parcel.finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    run_id: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        run: {
+                            run_id: number;
+                            zone: string;
+                            date: string;
+                            /** @enum {string} */
+                            status: "planned" | "out" | "done";
+                            pickups: {
+                                business_id: number;
+                                name: string;
+                                address: string;
+                                landmark: string | null;
+                                phone: string;
+                                parcels: number;
+                                collected: boolean;
+                            }[];
+                            drops: {
+                                delivery_id: number;
+                                position: number;
+                                business: string;
+                                reference: string | null;
+                                customer_name: string;
+                                customer_phone: string;
+                                address: string;
+                                landmark: string | null;
+                                notes: string | null;
+                                /** @enum {string} */
+                                status: "pending" | "assigned" | "picked_up" | "delivered" | "failed" | "cancelled";
+                                failure_reason: string | null;
+                            }[];
+                            counts: {
+                                total: number;
+                                delivered: number;
+                                failed: number;
+                                to_collect: number;
+                                with_driver: number;
+                            };
+                        };
                     };
                 };
             };
@@ -1355,6 +2254,12 @@ export interface operations {
                         renewal: components["schemas"]["SubscriptionResource"] | null;
                         purchase: components["schemas"]["PurchaseResource"] | null;
                         auto_renewal: components["schemas"]["AutoRenewalResource"] | null;
+                        /** @description Seats she holds for people with her, from today on. Each person pays the fare to the mate. */
+                        guests: {
+                            run_id: number;
+                            date: string;
+                            seats: number;
+                        }[];
                         /** @description Days she has already said she won't ride */
                         notices: components["schemas"]["NoticeResource"][];
                         /** @description The next days she can still say she won't ride, as "2026-10-07" */
@@ -1411,6 +2316,57 @@ export interface operations {
             401: components["responses"]["AuthenticationException"];
         };
     };
+    "search.index": {
+        parameters: {
+            query: {
+                /** @description What she typed, such as "Circle" or "Makola" */
+                to: string;
+                latitude?: number | null;
+                longitude?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        runs: {
+                            run_id: number;
+                            route_id: number;
+                            route: string;
+                            /** @enum {string} */
+                            direction: "outbound" | "return";
+                            departs_at: string;
+                            days: number[];
+                            seats_free: number;
+                            apply_stop_id: number;
+                            board: {
+                                stop_id: number;
+                                name: string;
+                                landmark: string | null;
+                                time: string | null;
+                                metres_away: number | null;
+                            };
+                            alight: {
+                                stop_id: number;
+                                name: string;
+                                landmark: string | null;
+                                time: string | null;
+                            };
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
     "application.store": {
         parameters: {
             query?: never;
@@ -1464,6 +2420,39 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "destination.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description One of her seats on the route, from `GET home` */
+                    seat_id: number;
+                    /** @description A stop on the route, after hers */
+                    stop_id: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Where she goes now, "Kaneshie" */
+                        destination: string;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
         };
     };
     "plan.index": {
@@ -1535,6 +2524,8 @@ export interface operations {
                     network: "mtn" | "telecel" | "airteltigo";
                     /** @description The wallet to charge. Leave out to use the number she logs in with. */
                     phone?: string | null;
+                    /** @description How many people the plan is for, her included. Only above 1 on vans that add people to her plan. Leave out to keep what her seat holds. */
+                    seats?: number | null;
                 };
             };
         };
@@ -1590,6 +2581,8 @@ export interface operations {
                     network: "mtn" | "telecel" | "airteltigo";
                     /** @description The wallet to charge. Leave out to use the number she logs in with. */
                     phone?: string | null;
+                    /** @description How many people each charge is for, her included. Only above 1 on vans that add people to her plan. */
+                    seats?: number | null;
                 };
             };
         };
@@ -1675,11 +2668,22 @@ export interface operations {
                 content: {
                     "application/json": {
                         trips: {
+                            /** @description For saying she got down. */
+                            run_id: number;
                             route: string;
                             car_number: string;
+                            /** @description Where she gets on */
                             my_stop: string;
+                            my_stop_id: number;
                             /** @description When the van is due at her stop, "06:38" */
                             my_time: string | null;
+                            /** @description Where she gets off */
+                            off_stop: string;
+                            off_stop_id: number;
+                            /** @description When the van is due there, by the timetable */
+                            off_time: string | null;
+                            /** @description While she is on board: stops until hers. 1 means hers is next, 0 that the van is there. Null otherwise. */
+                            stops_to_off: number | null;
                             /** @enum {string} */
                             status: "not_started" | "running" | "ended";
                             /** @description Stops between the van and her. 0 means it is at her stop or has passed it. Null unless running.. 0 means the van is at her stop or has passed it. Before the first stop is reached it counts from the start. */
@@ -1689,13 +2693,35 @@ export interface operations {
                              * @enum {string|null}
                              */
                             pickup: "picked_up" | "missed" | null;
+                            /** @description When she said she got down. Null until she does. */
+                            alighted_at: string | null;
                             /** @description Only while the trip is running. The position is only given out while the trip is running. */
                             position: {
                                 latitude: number;
                                 longitude: number;
                                 at: string;
                                 live: boolean;
+                                heading: number | null;
                             } | null;
+                            /**
+                             * @description Minutes until the van reaches her stop in today's traffic. Null when it can't be worked out: then show stops_away.
+                             *     Minutes until the van reaches the given stop in today's traffic. Null without a Google key,
+                             *     when the van's position isn't live, or when the stop is already behind it.
+                             */
+                            minutes_away: number | null;
+                            /**
+                             * @description The road the run follows, as [latitude, longitude]. Null until traced: then join the stops.. The road the run follows, in the direction of travel. Null until the route has been traced,
+                             *     and then maps join the stops with straight lines.
+                             */
+                            path: [
+                                number,
+                                number
+                            ][] | null;
+                            /** @description The road the van has driven so far today. Empty unless running. */
+                            trail: [
+                                number,
+                                number
+                            ][];
                             stops: {
                                 id: number;
                                 name: string;
@@ -1707,6 +2733,123 @@ export interface operations {
                             }[];
                             /** @description A web page with the live map. She can open it or send it to someone. It stops showing the van when the trip ends. */
                             map_url: string | null;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+        };
+    };
+    "trip.history": {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        trips: {
+                            date: string;
+                            route: string;
+                            /** @enum {string} */
+                            direction: "outbound" | "return";
+                            car_number: string;
+                            my_stop: string | null;
+                            /** @enum {string} */
+                            status: "running" | "ended";
+                            /** @enum {string} */
+                            outcome: "picked_up" | "missed" | "not_riding" | "not_marked";
+                            picked_up_at: string | null;
+                            alighted_at: string | null;
+                            alighted_at_stop: string | null;
+                            started_at: string;
+                            ended_at: string | null;
+                        }[];
+                        has_more: boolean;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "trip.alight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    run_id: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        alighted_at: string;
+                        /** @description Where she got down */
+                        stop: string | null;
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "trip.route": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        routes: {
+                            seat_id: number;
+                            route: string;
+                            /** @enum {string} */
+                            direction: "outbound" | "return";
+                            my_stop: string;
+                            my_stop_id: number;
+                            my_time: string | null;
+                            off_stop_id: number;
+                            path: [
+                                number,
+                                number
+                            ][] | null;
+                            stops: {
+                                id: number;
+                                name: string;
+                                landmark: string | null;
+                                time: string | null;
+                                latitude: number | null;
+                                longitude: number | null;
+                                reached: boolean;
+                            }[];
                         }[];
                     };
                 };
@@ -1773,6 +2916,45 @@ export interface operations {
                 content: {
                     "application/json": {
                         notice: components["schemas"]["NoticeResource"];
+                    };
+                };
+            };
+            401: components["responses"]["AuthenticationException"];
+            422: components["responses"]["ValidationException"];
+        };
+    };
+    "guest.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description One of her seats, from `GET home` */
+                    seat_id: number;
+                    /**
+                     * Format: date
+                     * @description "2026-10-24"
+                     */
+                    date: string;
+                    /** @description How many people, not counting her. 0 lets them go. */
+                    seats: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description How many are held for that day now. 0 when let go. */
+                        seats: number;
+                        date: string;
                     };
                 };
             };

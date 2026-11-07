@@ -7,7 +7,7 @@ use Modules\Access\Models\Organisation;
 
 /**
  * For anything a partner company could own one day: drivers, vehicles, routes, runs.
- * Until partners exist, everything belongs to TrustRide, organisation 1.
+ * Until partners exist, everything belongs to Aveo, organisation 1.
  */
 trait BelongsToOrganisation
 {

@@ -11,6 +11,7 @@ use Modules\Subscriptions\Enums\SeatStatus;
 use Modules\Subscriptions\Enums\SubscriptionStatus;
 use Modules\Subscriptions\Models\AbsenceNotice;
 use Modules\Subscriptions\Models\AutoRenewal;
+use Modules\Subscriptions\Models\GuestSeats;
 use Modules\Subscriptions\Models\PlanPurchase;
 use Modules\Subscriptions\Models\Seat;
 use Modules\Subscriptions\Models\Subscription;
@@ -19,7 +20,7 @@ use Modules\Subscriptions\Models\Subscription;
 class RiderOverview
 {
     /**
-     * @return array{seats: Collection<int, Seat>, subscription: ?Subscription, renewal: ?Subscription, purchase: ?PlanPurchase, auto_renewal: ?AutoRenewal, notices: Collection<int, AbsenceNotice>, ride_dates: list<string>}
+     * @return array{seats: Collection<int, Seat>, subscription: ?Subscription, renewal: ?Subscription, purchase: ?PlanPurchase, auto_renewal: ?AutoRenewal, notices: Collection<int, AbsenceNotice>, guests: Collection<int, GuestSeats>, ride_dates: list<string>}
      */
     public function handle(Rider $rider): array
     {
@@ -47,8 +48,15 @@ class RiderOverview
             ->orderBy('date')
             ->get();
 
+        $guests = GuestSeats::query()
+            ->where('rider_id', $rider->id)
+            ->where('date', '>=', $today->toDateString())
+            ->orderBy('date')
+            ->get();
+
         return [
             'seats' => $seats,
+            'guests' => $guests,
             'subscription' => $upcoming->first(),
             'renewal' => $upcoming->skip(1)->first(),
             'notices' => $notices,

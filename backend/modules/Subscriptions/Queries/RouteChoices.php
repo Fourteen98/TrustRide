@@ -19,7 +19,7 @@ class RouteChoices
      */
     public function handle(): Collection
     {
-        $runs = Run::query()->where('is_active', true)->withCount('takenSeats')->orderBy('departs_at')->get()->groupBy('route_id');
+        $runs = Run::query()->where('is_active', true)->withSum('takenSeats as taken_seats_count', 'party')->orderBy('departs_at')->get()->groupBy('route_id');
 
         return Route::query()
             ->where('is_active', true)
@@ -50,7 +50,7 @@ class RouteChoices
             ->groupBy(fn (Run $run) => $run->departureTime())
             ->map(fn (Collection $sameTime, string $time) => [
                 'time' => $time,
-                'seats_free' => $sameTime->contains(fn (Run $run) => $run->seats_held > $run->taken_seats_count),
+                'seats_free' => $sameTime->contains(fn (Run $run) => $run->seats_held > (int) $run->taken_seats_count),
             ])
             ->values()
             ->all();

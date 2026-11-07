@@ -7,8 +7,8 @@ import { Notice } from './notice';
 
 type Props = { phone: string | null; whatsapp: string | null; fallback?: string };
 
-/** The ways to reach the TrustRide team: WhatsApp and a call. Shows a plain line if neither is set. */
-export function SupportButtons({ phone, whatsapp, fallback = 'Ask the TrustRide team for help.' }: Props) {
+/** The ways to reach the Aveo team: WhatsApp and a call. Shows a plain line if neither is set. */
+export function SupportButtons({ phone, whatsapp, fallback = 'Ask the Aveo team for help.' }: Props) {
   return (
     <View style={{ gap: Spacing.two }}>
       {whatsapp ? (

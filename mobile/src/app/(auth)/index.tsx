@@ -10,14 +10,12 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useAction } from '@/hooks/use-action';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { looksLikeGhanaPhone } from '@/lib/phone';
 
 /** Step 1 of login: the phone number. Riders, drivers and mates all start here. */
 export default function PhoneScreen() {
   const router = useRouter();
   const { requestCode } = useAuth();
-  const dark = useColorScheme() === 'dark';
   const send = useAction();
   const [phone, setPhone] = useState('');
 
@@ -33,12 +31,12 @@ export default function PhoneScreen() {
     <Screen>
       <View style={{ gap: Spacing.two, marginTop: Spacing.six }}>
         <Image
-          source={dark ? require('@/assets/images/symbol-dark.png') : require('@/assets/images/symbol.png')}
-          style={{ width: 64, height: 64 }}
+          source={require('@/assets/images/logo.png')}
+          style={{ width: 160, height: 36, marginBottom: Spacing.two }}
           contentFit="contain"
-          accessible={false}
+          contentPosition="left"
+          accessibilityLabel="Aveo"
         />
-        <ThemedText type="subtitle">TrustRide</ThemedText>
         <ThemedText themeColor="textSecondary">Beat the bus-stop hustle. Enter your phone number and we'll text you a code.</ThemedText>
       </View>
 

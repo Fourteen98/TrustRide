@@ -7,9 +7,11 @@ use Modules\Payments\Actions\StartPayment;
 use Modules\Payments\Models\PaymentMandate;
 use Modules\Riders\Models\Rider;
 use Modules\Subscriptions\Enums\PurchaseStatus;
+use Modules\Subscriptions\Enums\SeatStatus;
 use Modules\Subscriptions\Enums\SubscriptionStatus;
 use Modules\Subscriptions\Models\Plan;
 use Modules\Subscriptions\Models\PlanPurchase;
+use Modules\Subscriptions\Models\Seat;
 use Modules\Subscriptions\Models\Subscription;
 
 /**
@@ -23,9 +25,11 @@ class StartPlanPurchase
 {
     public function __construct(private ActivateSubscription $activate, private StartPayment $pay) {}
 
-    public function handle(Rider $rider, Plan $plan, string $phone, string $network, ?PaymentMandate $mandate = null): PlanPurchase
+    public function handle(Rider $rider, Plan $plan, string $phone, string $network, ?PaymentMandate $mandate = null, ?int $seats = null): PlanPurchase
     {
-        $this->activate->ensureAllowed($rider, $plan);
+        // How many the plan is for, her included. Unless she says, what her seat holds now, so a renewal keeps it.
+        $seats ??= max(1, (int) Seat::query()->where('rider_id', $rider->id)->whereIn('status', [SeatStatus::Reserved, SeatStatus::Active])->max('party'));
+        $this->activate->ensureAllowed($rider, $plan, $seats);
 
         // One prompt at a time. After the waiting time she may try again even if the first is unresolved.
         $waiting = PlanPurchase::query()
@@ -52,12 +56,13 @@ class StartPlanPurchase
         $purchase = PlanPurchase::query()->create([
             'rider_id' => $rider->id,
             'plan_id' => $plan->id,
-            'amount' => $plan->price,
+            'amount' => $plan->price * $seats,
+            'seats' => $seats,
             'network' => $network,
         ]);
 
         try {
-            $payment = $this->pay->handle(PlanPurchase::PAYABLE, $purchase->id, $plan->price, $phone, $network, "TrustRide {$plan->name} plan", $mandate);
+            $payment = $this->pay->handle(PlanPurchase::PAYABLE, $purchase->id, $purchase->amount, $phone, $network, $seats > 1 ? "Aveo {$plan->name} plan for {$seats}" : "Aveo {$plan->name} plan", $mandate);
         } catch (DomainException $e) {
             $purchase->update(['status' => PurchaseStatus::Failed]);
 

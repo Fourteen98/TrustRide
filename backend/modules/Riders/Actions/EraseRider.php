@@ -8,6 +8,7 @@ use Modules\Access\Actions\RemoveRoleFromAccount;
 use Modules\Access\Models\Staff;
 use Modules\Riders\Events\RiderErased;
 use Modules\Riders\Models\DataDeletionRequest;
+use Modules\Riders\Models\Rider;
 
 /**
  * Deletes a rider for good. This cannot be undone.
@@ -27,19 +28,37 @@ class EraseRider
             throw new DomainException('This request has already been dealt with.');
         }
 
-        return DB::transaction(function () use ($request, $by) {
-            $rider = $request->rider;
-            $account = $rider->account;
-            $phone = $account->phone;
+        return DB::transaction(fn () => $this->erase($request->rider, $request, $by));
+    }
 
-            $rider->delete();
-            $this->removeRole->handle($account, 'rider');
+    /**
+     * The same deletion, started by the retention job and not by her: she stopped riding longer ago
+     * than Aveo keeps data. A completed request is written so there is a record that it happened,
+     * and why. Nobody's name is on it, because no person did it.
+     */
+    public function forRetention(Rider $rider): DataDeletionRequest
+    {
+        return DB::transaction(function () use ($rider) {
+            // If she had asked and nobody had acted yet, that request is the one that gets completed.
+            $request = DataDeletionRequest::query()->where('rider_id', $rider->id)->where('status', DataDeletionRequest::PENDING)->first()
+                ?? DataDeletionRequest::query()->create(['rider_id' => $rider->id, 'requested_at' => now(), 'reason' => DataDeletionRequest::RETENTION]);
 
-            $request->update(['status' => DataDeletionRequest::COMPLETED, 'completed_at' => now(), 'completed_by' => $by->id]);
-
-            RiderErased::dispatch($phone, $request->id);
-
-            return $request;
+            return $this->erase($rider, $request, null);
         });
+    }
+
+    private function erase(Rider $rider, DataDeletionRequest $request, ?Staff $by): DataDeletionRequest
+    {
+        $account = $rider->account;
+        $phone = $account->phone;
+
+        $rider->delete();
+        $this->removeRole->handle($account, 'rider');
+
+        $request->update(['status' => DataDeletionRequest::COMPLETED, 'completed_at' => now(), 'completed_by' => $by?->id]);
+
+        RiderErased::dispatch($phone, $request->id);
+
+        return $request;
     }
 }

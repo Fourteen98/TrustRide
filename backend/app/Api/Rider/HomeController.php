@@ -43,6 +43,12 @@ class HomeController
             'purchase' => isset($data['purchase']) ? new PurchaseResource($data['purchase']) : null,
             /** Her direct debit, if it is on or waiting for her to approve. Null if off or never set up. */
             'auto_renewal' => isset($data['auto_renewal']) ? new AutoRenewalResource($data['auto_renewal']) : null,
+            /**
+             * Seats she holds for people with her, from today on. Each person pays the fare to the mate.
+             *
+             * @var list<array{run_id: int, date: string, seats: int}>
+             */
+            'guests' => collect($data['guests'] ?? [])->map(fn ($held) => ['run_id' => $held->run_id, 'date' => $held->date->toDateString(), 'seats' => $held->seats])->values()->all(),
             /** Days she has already said she won't ride */
             'notices' => NoticeResource::collection($data['notices'] ?? []),
             /**
@@ -56,9 +62,9 @@ class HomeController
                 ->where('rider_id', $rider->id)->where('status', DataDeletionRequest::PENDING)->exists(),
             'support' => [
                 /** @var string|null */
-                'phone' => config('trustride.support.phone'),
+                'phone' => config('aveo.support.phone'),
                 /** @var string|null */
-                'whatsapp' => config('trustride.support.whatsapp'),
+                'whatsapp' => config('aveo.support.whatsapp'),
             ],
         ]);
     }

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Access\Models\Staff;
 use Modules\Drivers\Enums\AssessmentOutcome;
 
-/** What TrustRide owes one driver for one month, and whether it has been paid. Not fare money. */
+/** What Aveo owes one driver for one month, and whether it has been paid. Not fare money. */
 class DriverStatement extends Model
 {
     protected $fillable = [

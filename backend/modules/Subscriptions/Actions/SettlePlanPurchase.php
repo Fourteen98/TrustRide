@@ -35,7 +35,7 @@ class SettlePlanPurchase
 
             try {
                 // Its own transaction inside ours, so a refusal undoes only the activation.
-                $subscription = DB::transaction(fn () => $this->activate->handle($purchase->rider, $purchase->plan, $by));
+                $subscription = DB::transaction(fn () => $this->activate->handle($purchase->rider, $purchase->plan, $by, seats: $purchase->seats));
             } catch (DomainException $e) {
                 $purchase->update(['status' => PurchaseStatus::NeedsAttention, 'problem' => str($e->getMessage())->limit(250)->toString()]);
                 PurchaseNeedsAttention::dispatch($purchase);

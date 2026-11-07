@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { useAuth } from '@/auth/auth-context';
@@ -15,7 +15,10 @@ import { useLoader } from '@/hooks/use-loader';
 import { clock } from '@/lib/dates';
 import { riderApi, type RouteChoice } from '@/rider/api';
 
-/** Task R2. She picks a route, a stop and a time. Only times a van actually runs are offered. */
+/**
+ * Task R2. She picks a route, a stop and a time. Only times a van actually runs are offered.
+ * Coming from "Where to?", the route, stop and time she tapped are already chosen.
+ */
 export default function ApplyScreen() {
   const routes = useLoader(riderApi.routes);
 
@@ -34,12 +37,13 @@ function Form({ routes }: { routes: RouteChoice[] }) {
   const router = useRouter();
   const { account, refresh } = useAuth();
   const send = useAction();
+  const chosen = useLocalSearchParams<{ route_id?: string; stop_id?: string; morning_time?: string; evening_time?: string }>();
 
   const [name, setName] = useState(account?.name ?? '');
-  const [routeId, setRouteId] = useState<number | null>(null);
-  const [stopId, setStopId] = useState<number | null>(null);
-  const [morning, setMorning] = useState<string | null>(null);
-  const [evening, setEvening] = useState<string | null>(null);
+  const [routeId, setRouteId] = useState<number | null>(chosen.route_id ? Number(chosen.route_id) : null);
+  const [stopId, setStopId] = useState<number | null>(chosen.stop_id ? Number(chosen.stop_id) : null);
+  const [morning, setMorning] = useState<string | null>(chosen.morning_time ?? null);
+  const [evening, setEvening] = useState<string | null>(chosen.evening_time ?? null);
 
   // With one route on offer there is nothing to choose, so it is picked for her.
   const route = routes.find((r) => r.id === routeId) ?? (routes.length === 1 ? routes[0] : null);
@@ -77,7 +81,7 @@ function Form({ routes }: { routes: RouteChoice[] }) {
         await riderApi.apply({ name: name.trim(), route_id: route.id, stop_id: stopId, morning_time: morning, evening_time: evening });
         await refresh().catch(() => undefined); // her name on the account may have just been set
       },
-      { then: router.back },
+      { then: () => router.navigate('/') },
     );
   }
 
@@ -88,7 +92,13 @@ function Form({ routes }: { routes: RouteChoice[] }) {
       <ChoiceGroup title="Route">
         {routes.length > 1 ? (
           routes.map((r) => (
-            <Choice key={r.id} label={r.name} detail={`To ${r.destination}`} selected={route?.id === r.id} onPress={() => chooseRoute(r.id)} />
+            <Choice
+              key={r.id}
+              label={r.name}
+              detail={`To ${r.destination}`}
+              selected={route?.id === r.id}
+              onPress={() => chooseRoute(r.id)}
+            />
           ))
         ) : (
           <ThemedText>{routes[0].name}</ThemedText>
@@ -110,15 +120,15 @@ function Form({ routes }: { routes: RouteChoice[] }) {
           </ChoiceGroup>
 
           <TimeChoices
-            title="Morning, to your destination"
-            hint="This is when the van leaves the first stop."
+            title={`Going, to ${route.destination}`}
+            hint="When the van leaves the first stop. Vans run all day: pick the one you would take."
             slots={route.morning_times}
             value={morning}
             onChange={(time) => pick(() => setMorning(time))}
           />
           <TimeChoices
-            title="Evening, back home"
-            hint="Leave this empty if you only want the morning."
+            title="Coming back"
+            hint="Leave this empty if you only want one way."
             slots={route.evening_times}
             value={evening}
             onChange={(time) => pick(() => setEvening(time))}

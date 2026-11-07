@@ -10,7 +10,7 @@ use Modules\Support\Events\IncidentRaised;
 use Modules\Support\Models\SupportCase;
 
 /**
- * Marks a case as an incident: something TrustRide must be able to account for later.
+ * Marks a case as an incident: something Aveo must be able to account for later.
  * Calling it again only changes how serious it is.
  */
 class MarkIncident

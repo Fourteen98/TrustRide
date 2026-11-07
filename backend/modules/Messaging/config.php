@@ -34,9 +34,12 @@ return [
     'hubtel_sms' => [
         'client_id' => env('HUBTEL_SMS_CLIENT_ID'),
         'client_secret' => env('HUBTEL_SMS_CLIENT_SECRET'),
-        'sender_id' => env('HUBTEL_SMS_SENDER_ID', 'TrustRide'),
+        'sender_id' => env('HUBTEL_SMS_SENDER_ID', 'Aveo'),
         'endpoint' => env('HUBTEL_SMS_ENDPOINT', 'https://sms.hubtel.com/v1/messages/send'),
     ],
+
+    // The delivery log and the event log hold names, numbers and what was said. Older entries are deleted.
+    'log_retention_days' => (int) env('MESSAGING_LOG_RETENTION_DAYS', 180),
 
     /*
      * When a rule says "her preferred channel" and that fails or isn't set up,
@@ -71,6 +74,13 @@ return [
         'trip.started' => 'The van set off. Goes to everyone riding that day.',
         'trip.ended' => 'The van arrived. Has nobody to message.',
         'rider.picked_up' => 'The mate marked a rider as on board',
+        'van.approaching' => 'The van is nearly at a stop. Goes to the riders getting on there.',
+        'stop.approaching' => 'The van is nearly at a stop. Goes to the riders on board who get off there.',
+        'crew.approaching' => 'The van is nearly at a stop where someone gets on or off. Goes to the driver and the mate.',
+        'delivery.received' => 'Ox: a business sent a parcel. Goes to the customer.',
+        'delivery.picked_up' => 'Ox: the driver collected a parcel. The customer gets her code by SMS directly.',
+        'delivery.delivered' => 'Ox: the customer has her parcel. Goes to the business.',
+        'delivery.failed' => 'Ox: the driver couldn\'t deliver. Goes to the customer.',
         'rider.missed' => 'The mate marked a rider as not at her stop',
         'run.announcement' => 'An operator messaged every rider on a run',
         'driver.approved' => 'A driver passed vetting',

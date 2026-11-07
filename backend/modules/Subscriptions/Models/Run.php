@@ -61,9 +61,28 @@ class Run extends Model
         return $this->seats()->whereIn('status', [SeatStatus::Reserved, SeatStatus::Active]);
     }
 
+    /** Seats held for Aveo that are taken: each rider's seat counts for her and the people on her plan. */
+    public function seatsTaken(): int
+    {
+        return (int) $this->takenSeats()->sum('party');
+    }
+
     public function seatsFree(): int
     {
-        return max(0, $this->seats_held - $this->takenSeats()->count());
+        return max(0, $this->seats_held - $this->seatsTaken());
+    }
+
+    /**
+     * Seats that people travelling with a rider may still take on a day, paying the fare: the van's seats less
+     * the subscribers' (with the people on their plans) and what others have already held that day.
+     */
+    public function guestSeatsFree(CarbonInterface $date, ?int $exceptRiderId = null): int
+    {
+        $held = GuestSeats::query()->where('run_id', $this->id)->where('date', $date->toDateString())
+            ->when($exceptRiderId, fn ($query) => $query->where('rider_id', '!=', $exceptRiderId))
+            ->sum('seats');
+
+        return max(0, $this->vehicle->seats_total - $this->seatsTaken() - (int) $held);
     }
 
     public function runsOn(CarbonInterface $date): bool

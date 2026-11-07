@@ -1,25 +1,25 @@
 {
   "expo": {
-    "name": "TrustRide",
-    "slug": "trustride",
+    "name": "Aveo",
+    "slug": "aveo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "trustride",
+    "scheme": "aveo",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/images/icon.png",
-      "bundleIdentifier": "com.trustride.app"
+      "bundleIdentifier": "com.aveo.app"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#22262B",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.trustride.app"
+      "package": "com.aveo.app"
     },
     "web": {
       "output": "static",
@@ -30,11 +30,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F4F2ED",
+          "backgroundColor": "#FFFFFF",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 160,
+          "imageWidth": 220,
           "dark": {
-            "backgroundColor": "#16181B",
+            "backgroundColor": "#14324A",
             "image": "./assets/images/splash-icon-dark.png"
           }
         }
@@ -43,13 +43,13 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "TrustRide uses your location while you run a trip, so riders can see where the van is."
+          "locationWhenInUsePermission": "Aveo uses your location to show you on the map next to your van, and, for drivers and mates, to show riders where the van is."
         }
       ],
       [
         "expo-notifications",
         {
-          "color": "#B08D3C"
+          "color": "#4DB6E8"
         }
       ]
     ],

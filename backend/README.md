@@ -1,4 +1,4 @@
-# TrustRide backend
+# Aveo backend
 
 One Laravel app, one Postgres database, one deploy. The business is split into modules. The three sides (admin dashboard, rider screens, driver and mate screens) are thin entry points on top.
 
@@ -12,13 +12,13 @@ You need PHP 8.3 or newer, Composer and Postgres.
 composer install
 cp .env.example .env
 php artisan key:generate
-createdb trustride            # or create the database in your Postgres app
+createdb aveo                # or create the database in your Postgres app
 php artisan migrate --seed    # tables, permissions, roles, first super admin
 php artisan serve             # http://localhost:8000
 php artisan queue:work        # in a second terminal. Events are handled on the queue.
 ```
 
-Then open http://localhost:8000/admin and log in with `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `.env`. Out of the box those are `admin@trustride.test` and `change-me-now`. Change both before seeding anywhere real.
+Then open http://localhost:8000/admin and log in with `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `.env`. Out of the box those are `admin@aveo.test` and `change-me-now`. Change both before seeding anywhere real.
 
 Keep `php artisan queue:work` running in a second terminal while you develop. Events are handled on the queue, so without it nothing reaches the event log.
 
@@ -35,13 +35,32 @@ Run the tests with `composer test` or `./vendor/bin/pest`. They use an in-memory
 
 ### Demo data
 
-To see the console with something in it:
+To see the console and the app with a believable month in them:
 
 ```sh
-php artisan db:seed --class=DemoSeeder
+php artisan demo:reset
 ```
 
-That adds one made-up route, a vetted driver with a mate and a vehicle, a 06:30 run, three riders riding, one approved but unpaid, and two applications waiting. It uses the same Actions the console uses. It refuses to run in production. `php artisan migrate:fresh --seed` wipes it.
+This wipes the local database and replays the last five weeks, dated from the day you run it, so the data never goes stale. Run it again whenever you want fresh dates. It takes about half a minute.
+
+- Two real Accra routes with pinned stops: Kasoa to Circle and Madina to Accra Central. With `GOOGLE_MAPS_API_KEY` set, each road is traced once while seeding.
+- Four buses, two on each route, each with a vetted driver and mate. Two are Aveo's and two are partners' (Asafo Transport and Kumi Brothers). Buses shuttle all day, from about 04:30 to 21:30, there and back again, so each makes 13 to 17 trips a day. The second bus on a route runs 20 to 30 minutes behind the first. Older days replay only the first trip each way, which keeps seeding quick.
+- People travelling with riders, both ways: on Kasoa's first bus and Madina's second they pay the fare to the mate (Esi and Korkor hold seats for today), and on Kasoa's second bus they go on the rider's plan (Efua's plan is for 3).
+- Sixteen riders at every stage: waiting, turned down, approved and unpaid, paying on all three plans, one renewal, one failed payment then paid, one plan that lapsed.
+- Every trip from start to end: positions every three minutes, riders marked at their stops, the odd missed rider, and days riders said they would not ride.
+- Today built around the moment you run it, whatever the time: the Kasoa van left about half an hour ago and is between stops, and the Madina van leaves in about a quarter of an hour. It prints today's timetable when it finishes. `--real-times` keeps the fixed 06:00 and 06:15 timetable instead.
+
+To keep the vans moving while you test, leave this running in a terminal:
+
+```sh
+php artisan demo:drive
+```
+
+Vans set off when due, move along the road every 10 seconds, the mate marks riders at each stop, and trips end on arrival. It stops by itself when no van is left in the next three hours. `php artisan demo:reset --drive` seeds and then drives in one go.
+
+It goes through the same Actions the app and console use, with the clock set to each moment, so the event log, messages and the pilot report read as if it happened. Messages go to the log and payments to the fake gateway whatever `.env` says. It refuses to run in production.
+
+The riders log in with their phone numbers, such as `0245550101` for Ama Owusu (Kasoa to Circle), `0245550102` for Esi Boateng (Mallam, a stop or two ahead of the van, with two people paying the fare today), `0245550107` for Efua Mensah (three on her plan) or `0245550111` for Adjoa Quaye (Madina). The drivers are `0245550001` and `0245550005` (Kasoa) and `0245550003` and `0245550007` (Madina); each mate's number is his driver's plus one. The login code is in `storage/logs/laravel.log`.
 
 ### The daily job
 
@@ -82,6 +101,7 @@ modules/            the business, split by domain
   Subscriptions/
   Trips/
   Support/
+  Deliveries/       Aveo Ox: businesses, zones, parcels, runs, invoices. Uses only Access and Drivers
   Payments/         knows no other module
   Messaging/        knows no other module
 
@@ -129,7 +149,7 @@ config.php            its settings, read as config('<module>.key')
 - **Modules declare permissions** in their service provider, bundled into default groups. `php artisan access:sync` stores them. It only adds, so run it on every deploy.
 - **A role keeps its groups.** A permission added to a group later reaches every role that has the group. Change a role only through `SetRoleAccess`, and a group only through `SetGroupPermissions`.
 - **One account, several roles.** A mate can also be a rider. Login returns the roles and the full permission list, and the app builds its home screen from that.
-- **Organisations.** `staff.organisation_id` exists from day one and TrustRide is organisation 1. Drivers, vehicles and routes get the same column when their tables are written. Partner companies are not built yet.
+- **Organisations.** `staff.organisation_id` exists from day one and Aveo is organisation 1. Drivers, vehicles and routes get the same column when their tables are written. Partner companies are not built yet.
 
 ### Mobile login
 
@@ -277,23 +297,52 @@ crew app   GET  /api/driver/v1/today            today's runs, riders by stop
            POST /api/driver/v1/trip/pickups     {run_id, rider_id, status}     the mate only
            POST /api/driver/v1/trip/location    {run_id, pings[]}  both phones, up to 200 at once
            POST /api/driver/v1/trip/end         {run_id}
-rider app  GET  /api/rider/v1/trips             status, stops away, position, map link
+rider app  GET  /api/rider/v1/trips             status, stops away, stops to where she gets off, position, map link
 anyone     GET  /t/{public id}                  the live map page. No login.
 ```
 
 - **One van, two phones.** The driver's and the mate's phone both send positions. Every one is kept as history. The trip keeps only the newest, so the van stays on the map if one phone dies. A late batch from a phone that was offline never moves the van backwards.
 - **"Stops away" needs no map service.** A stop counts as reached when the van comes within 150 metres of its pin, or when the mate marks anyone there. Stops need a latitude and longitude (Network > Stops) for the first to work. The second works without.
 - **One map, three places.** `/t/{public id}` is a plain web page (`resources/views/trip.blade.php`) using Leaflet and OpenStreetMap, which cost nothing and need no key. The app shows that same page inside itself, the share link opens it, and the console links to it. It names no rider, can't be guessed, and stops showing the van when the trip ends.
+- **On the map.** A solid line shows the road the van has actually driven today, from its own positions. A dashed line joins the stops still to come, straight, because the road between them is only known once a van has driven it. The van glides to each new position instead of jumping. `?compact=1` shows the map alone, which the rider's home screen uses.
+- **Google Maps, if there is a key.** Set `GOOGLE_MAPS_API_KEY` (a Google Maps Platform key with the Routes API switched on, restricted to the server's IP). Then each route's road is traced once from its stops and kept on the route, so maps follow the streets: after stops change, by "Trace the road" under Network > Routes, or `php artisan network:trace-routes`. Riders also see "about 7 min away" in today's traffic, asked at most once a minute per van and stop however many riders are looking. `GOOGLE_MAPS_DAILY_LIMIT` caps the calls a day, because Google bills each one. Without a key everything still works: straight lines and "2 stops away".
+- **Getting on and getting off.** A seat's stop is her own stop, near home. Her destination is the stop she goes to, the end of the route unless she chooses another in the app (`PUT /api/rider/v1/destination`, set on all her seats on that route). Going out she gets on at her stop and off at her destination. Coming back it is the other way round: she gets on in town and off near home. The crew sees, at each stop, who gets on and who gets off, and a list of everyone on board in the order they get off. A rider is on board from the mate's "On board" until she taps "I've got down", or the van reaches her stop.
+- **Your stop is next.** When the van comes within `TRIPS_APPROACH_METRES` (1,000 until the business decides) of its next stop, the riders getting on there are told to be ready, the riders getting off there are told their stop is next, and the driver and mate are told how many get on and off. Each stop is announced once a trip, and only when someone gets on or off. These go as app notifications only (Messaging > Rules), since a late SMS is worse than none. The app also counts down on screen, so it works without notifications.
 - **By hand.** Operators can start and end a trip under Subscriptions > Trips when the crew's app is off.
 - **Not at the stop.** When the mate marks a rider "Not here" she is sent a message. Each plan has a switch, "Give the day back when the mate marks her not at the stop", off by default. If the mate corrects it, the day is taken back. The message itself can be switched off under Messaging > Rules.
 - **Housekeeping.** `trips:end-stale` ends trips nobody ended, after midnight. `trips:prune` deletes positions older than `TRIPS_LOCATION_HISTORY_DAYS` (30 until the business decides).
-- **Try it without a van.** `php artisan trips:simulate` drives a pretend van along today's first run and prints the map link.
+- **Try it without a van.** Subscriptions > Trip simulator in the console: pick a run and a rider, start the trip, then put the van at a stop, part of the way to the next, or anywhere by clicking the map. It shows how many stops away she is and the live map, and lets you mark her picked up. It uses the real Actions, so riders on that run get the real "van has set off" message. It is not offered in production. `php artisan trips:simulate` does a whole drive by itself from the terminal.
 
 Not built: sending the position with the phone locked or the app put away. See the mobile README.
 
+## Aveo Ox (parcel delivery)
+
+Ox is Aveo's delivery service for businesses, in the `Deliveries` module. It shares the app, the login, the drivers and the console with Ride, and nothing else: the arch test lets it use only Access and Drivers. This is the pilot version. An operator does what a business will later do for itself.
+
+```
+console    Ox > Zones, Ox Plans, Businesses     set up once
+           Ox > Parcels > Send a parcel         one at a time, or Businesses > Upload parcels (CSV)
+           Ox > Runs > Build a run              a zone's waiting parcels onto one driver's run
+           Businesses > Invoice a month, Ox > Invoices > Mark paid
+driver app GET  /api/driver/v1/parcels           his runs: who to collect from, then each door
+           POST /api/driver/v1/parcels/start | collect | deliver | not-delivered | finish
+customer   GET  /o/{public id}                   her page from the SMS. No login, no app
+```
+
+- **One way to deliver: batches.** A parcel in before its zone's cut-off goes on that day's run, later ones on the next day's. "Build a run" puts every parcel waiting for a zone and day on one run, grouped by business so the driver collects each shop's together. A zone can have more than one run a day. Parcels he never collects go back in the queue for the next day when he finishes.
+- **The customer has no account.** She is texted when to expect it and a link to follow it. When the driver presses "Collected", she is texted a code. She gives it to him at the door, and he types it. After five wrong codes he must call her or Aveo, and staff can confirm it in the console without the code, saying why. The code goes out directly, like a login code, so it is never in the message log; only a keyed hash of it is stored.
+- **Couldn't deliver.** He picks a reason and she is texted it. An operator moves it to another day from Ox > Parcels.
+- **Plans.** A business's plan numbers are copied onto it, so a negotiated price or a later change to the plan moves nobody else. At the limit a plan either keeps going and charges each one over on the invoice (the default), or stops taking parcels until next month. Cancelled parcels don't count.
+- **Billing.** "Invoice a month" works out the plan fee, the deliveries over the allowance and the live map add-on. It can be issued again until it is marked paid. Payment happens outside the system for now.
+- **Drivers.** Only an approved driver whose work includes Ox can be given a run (Drivers > Edit > Work he does). The app shows him a Parcels tab. Each run records what he is paid for it.
+- **Customer details** are removed `OX_CUSTOMER_DATA_DAYS` after the parcel is done with (90 until the business decides), by `ox:prune-customers` each night. The parcel row stays for the invoice.
+- **Not built yet:** the business's own screens in the app, automatic batching at the cut-off, the live map (the add-on is billed but there is no map yet), an API for shops, online billing, cash on delivery, and per-zone delivery fees a business shows its customers.
+
+Numbers nobody has decided are in `modules/Deliveries/config.php`: the live map fee, the default pay for a run, how long customer details are kept, and the code length and tries.
+
 ## Support
 
-Anyone in the app can write to TrustRide from the Help screen. Operators work the queue in the console under Support > Queue.
+Anyone in the app can write to Aveo from the Help screen. Operators work the queue in the console under Support > Queue.
 
 - **One conversation at a time.** Her first message picks what it is about and opens a case. Anything she writes while it is open is added to it. After it is resolved, her next message opens a new one.
 - **What the operator sees.** Who she is, what she rides (route, stop, time, car, driver) and a timeline of everything said and done. The side that takes the message gathers "what she rides" (`App\Api\Support\Reporter`), because Support itself knows nothing about seats.
@@ -307,6 +356,26 @@ POST /api/support/v1/messages   {message, category?}
 ```
 
 Not built: the trip share link page (S3). It needs Trips.
+
+## Retention and clean-up
+
+Personal data is not kept for ever. These run nightly through the scheduler.
+
+| Command | What it deletes | Setting |
+| --- | --- | --- |
+| `subscriptions:retention` | Riders who stopped riding longer ago than the retention period, by the same path as "delete my data" | Subscriptions > Plans > Renewal and seat rules. Starts at 0, which deletes nobody |
+| `messaging:prune` | Delivery log and event log entries | `MESSAGING_LOG_RETENTION_DAYS`, 180 |
+| `support:prune` | Resolved cases. Incidents are kept | `SUPPORT_CASE_RETENTION_DAYS`, 365 |
+| `trips:prune` | Van positions | `TRIPS_LOCATION_HISTORY_DAYS`, 30 |
+| `access:prune` | Login codes more than a day old | fixed |
+
+A rider is only past retention if she has nothing live: no seat, no running or coming subscription, no application waiting, no payment under way and no direct debit. `php artisan subscriptions:retention --dry-run` lists who would go and deletes nobody. Each deletion leaves a completed row under Riders > Deletion requests, marked "Stopped riding long ago", with no name on it.
+
+## The pilot report
+
+`/admin/pilot-report`, for staff with the `reports.pilot.view` permission, which operators don't get by default because it shows the money. Where things stand today, then the last eight weeks: riders with a plan, new applications, money in, renewals, trips run and on time, pickups, support cases, and how many SMS were sent. Nothing is stored. Every number is counted from the records when the page opens (`App\Admin\Reports\PilotNumbers`).
+
+Two caveats. "Trips due" uses the runs as they are today, so it is a close guess for weeks before a run changed. "On time" means started within `REPORT_ON_TIME_MINUTES` (10) of the departure time.
 
 ## Settings staff can change
 
@@ -325,6 +394,7 @@ Log in at `/admin`. The menu follows your permissions.
 5. **Subscriptions.** "Activate a subscription" for a rider who has paid. Renew, or record that she won't ride on a day.
 6. **Today's riders.** Each run going out on the chosen day, with its riders in stop order and who is away.
 7. **Monthly statements.** "Assess a month" on the driver opens his statement. Pay him outside the system, then mark it paid with the reference.
+   Each driver also has a **stage** on the way from a daily contract to Aveo driver-partner (daily contract, assessed, driver-partner) and the **work he does** (Ride, Ox, or both). Every driver starts on a daily contract driving Ride. "Change stage" moves him up only once he is approved and has a monthly assessment on record, and keeps who moved him and why. Ox has no screens yet: the work field only records who can do it.
 8. **Messaging.** The delivery log shows what went to whom and what failed, with "Try again". Message rules decide who is told what. Events lists everything the modules reported.
 9. **Deletion requests.** Riders who asked for their data to be deleted. Confirming can't be undone.
 

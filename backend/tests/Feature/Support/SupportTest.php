@@ -104,11 +104,11 @@ it('shows her the reply in the app and sends it to her phone, but never a staff 
     $this->getJson('/api/support/v1/case')->assertOk()
         ->assertJsonPath('case.taken', true)
         ->assertJsonCount(2, 'case.messages')
-        ->assertJsonPath('case.messages.1.from', 'trustride')
+        ->assertJsonPath('case.messages.1.from', 'aveo')
         ->assertJsonMissing(['body' => 'Driver says he had a flat tyre.']);
 
     expect($case->fresh()->assigned_to)->toBe($this->operator->id) // replying took it
-        ->and(Message::query()->where('recipient_phone', '+233241234567')->where('body', 'like', 'TrustRide: Sorry Ama%')->count())->toBe(1);
+        ->and(Message::query()->where('recipient_phone', '+233241234567')->where('body', 'like', 'Aveo: Sorry Ama%')->count())->toBe(1);
 });
 
 it('keeps a resolved case visible for a while, then her next message opens a new one', function () {

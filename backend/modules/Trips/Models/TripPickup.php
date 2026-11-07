@@ -10,11 +10,11 @@ use Modules\Trips\Enums\PickupStatus;
 
 class TripPickup extends Model
 {
-    protected $fillable = ['trip_id', 'rider_id', 'stop_id', 'status', 'marked_by_account', 'marked_at'];
+    protected $fillable = ['trip_id', 'rider_id', 'stop_id', 'status', 'marked_by_account', 'marked_at', 'alighted_at', 'alighted_stop_id'];
 
     protected function casts(): array
     {
-        return ['status' => PickupStatus::class, 'marked_at' => 'datetime'];
+        return ['status' => PickupStatus::class, 'marked_at' => 'datetime', 'alighted_at' => 'datetime'];
     }
 
     public function trip(): BelongsTo
@@ -25,6 +25,11 @@ class TripPickup extends Model
     public function rider(): BelongsTo
     {
         return $this->belongsTo(Rider::class);
+    }
+
+    public function alightedStop(): BelongsTo
+    {
+        return $this->belongsTo(Stop::class, 'alighted_stop_id');
     }
 
     public function stop(): BelongsTo

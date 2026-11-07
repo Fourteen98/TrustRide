@@ -36,7 +36,7 @@ class ExpoPushChannel implements Channel
 
         $response = $request->post(config('messaging.expo_push.endpoint'), $devices->map(fn (PushDevice $device) => [
             'to' => $device->token,
-            'title' => 'TrustRide',
+            'title' => 'Aveo',
             'body' => $body,
             'sound' => 'default',
             'priority' => 'high',

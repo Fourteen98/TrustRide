@@ -74,10 +74,10 @@ export async function call<T>(request: () => Promise<{ data?: T; error?: unknown
     if (__DEV__) {
       console.warn(`[api] request failed against ${API_URL}:`, cause);
 
-      throw new Error(`Can't reach TrustRide at ${API_URL}. Is the backend running with --host=0.0.0.0, and is that still your computer's address?`);
+      throw new Error(`Can't reach Aveo at ${API_URL}. Is the backend running with --host=0.0.0.0, and is that still your computer's address?`);
     }
 
-    throw new Error("Can't reach TrustRide. Check your connection and try again.");
+    throw new Error("Can't reach Aveo. Check your connection and try again.");
   }
 
   if (result.error !== undefined) {

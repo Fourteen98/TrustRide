@@ -68,11 +68,24 @@ export default function PlansScreen() {
           }
 
           if (home.purchase && !(home.purchase.status === 'failed' && retrying)) {
-            return <PaymentProgress purchase={home.purchase} support={home.support} onDone={() => router.back()} onRetry={() => setRetrying(true)} />;
+            return (
+              <PaymentProgress
+                purchase={home.purchase}
+                support={home.support}
+                onDone={() => router.back()}
+                onRetry={() => setRetrying(true)}
+              />
+            );
           }
 
           if (auto?.status === 'pending') {
-            return <AutoRenewalProgress renewal={auto} onConfirmed={() => void refresh()} onCancelled={() => (setStarted(null), void refresh())} />;
+            return (
+              <AutoRenewalProgress
+                renewal={auto}
+                onConfirmed={() => void refresh()}
+                onCancelled={() => (setStarted(null), void refresh())}
+              />
+            );
           }
 
           if (takingFirstPayment) {
@@ -90,7 +103,8 @@ export default function PlansScreen() {
             return (
               <Card title="Paid">
                 <MutedText>
-                  Your seat is yours.{auto?.status === 'active' ? ' Your plan will renew by itself. You can stop that on the home screen.' : ''}
+                  Your seat is yours.
+                  {auto?.status === 'active' ? ' Your plan will renew by itself. You can stop that on the home screen.' : ''}
                 </MutedText>
                 <Button label="Done" onPress={() => router.back()} />
               </Card>
@@ -102,7 +116,9 @@ export default function PlansScreen() {
           }
 
           if (auto?.status === 'active') {
-            return <Notice tone="info" text="Your plan renews by itself, so there is nothing to pay. You can stop that on the home screen." />;
+            return (
+              <Notice tone="info" text="Your plan renews by itself, so there is nothing to pay. You can stop that on the home screen." />
+            );
           }
 
           if (home.renewal) {
@@ -111,8 +127,24 @@ export default function PlansScreen() {
 
           return (
             <>
-              {declined ? <Notice text="The direct debit was not approved, so nothing was taken. Try again, or pay just this time." /> : null}
-              <PayForm plans={plans} networks={networks} defaultPhone={account?.phone ?? ''} chargeDaysBefore={auto_renew_charge_days_before} onStarted={begin} />
+              {declined ? (
+                <Notice text="The direct debit was not approved, so nothing was taken. Try again, or pay just this time." />
+              ) : null}
+              <PayForm
+                plans={plans}
+                networks={networks}
+                defaultPhone={account?.phone ?? ''}
+                chargeDaysBefore={auto_renew_charge_days_before}
+                onStarted={begin}
+                party={
+                  home.seats.every((seat) => seat.extra_seats === 'plan')
+                    ? {
+                        max: Math.min(...home.seats.map((seat) => seat.max_party)),
+                        current: Math.max(...home.seats.map((seat) => seat.party)),
+                      }
+                    : null
+                }
+              />
             </>
           );
         }}

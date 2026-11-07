@@ -43,7 +43,11 @@ export function AutoRenewalProgress({ renewal, onConfirmed, onCancelled }: Progr
           <Button
             label="Confirm"
             loading={action.busy}
-            onPress={() => (code.trim() ? action.run(() => riderApi.sendAutoRenewalCode(code.trim()), { then: onConfirmed }) : action.fail('Enter the code.'))}
+            onPress={() =>
+              code.trim()
+                ? action.run(() => riderApi.sendAutoRenewalCode(code.trim()), { then: onConfirmed })
+                : action.fail('Enter the code.')
+            }
           />
         </>
       ) : (
@@ -73,7 +77,11 @@ export function AutoRenewalLine({ renewal, onStopped }: { renewal: AutoRenewal; 
       {confirming ? (
         <>
           <MutedText>Stop it? Nothing more will be taken. The plan you have paid for stays as it is.</MutedText>
-          <Button label="Yes, stop automatic payment" loading={action.busy} onPress={() => action.run(riderApi.stopAutoRenewal, { then: onStopped })} />
+          <Button
+            label="Yes, stop automatic payment"
+            loading={action.busy}
+            onPress={() => action.run(riderApi.stopAutoRenewal, { then: onStopped })}
+          />
           <Button label="Keep it" variant="plain" onPress={() => setConfirming(false)} />
         </>
       ) : (

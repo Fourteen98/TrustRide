@@ -38,7 +38,7 @@ function startHubtelPayment(int $amount = 6000): Payment
 {
     hubtelAccepts();
 
-    return app(StartPayment::class)->handle('plan_purchase', 7, $amount, '+233241234567', 'mtn', 'TrustRide 1 month plan');
+    return app(StartPayment::class)->handle('plan_purchase', 7, $amount, '+233241234567', 'mtn', 'Aveo 1 month plan');
 }
 
 function callback(Payment $payment, string $code = '0000', array $data = [])
@@ -198,7 +198,7 @@ it('gives the console a payments screen, where only a trusted role may settle by
     Http::fake(['api-txnstatus.hubtel.com/*' => Http::response(['data' => ['status' => 'Unpaid']])]);
 
     $this->actingAs(staff('operator'), 'platform');
-    $this->get('/admin/payments')->assertOk()->assertSee('TrustRide 1 month plan');
+    $this->get('/admin/payments')->assertOk()->assertSee('Aveo 1 month plan');
 
     Livewire\Livewire::test(ManagePayments::class)
         ->assertTableActionHidden('resolve', $payment)

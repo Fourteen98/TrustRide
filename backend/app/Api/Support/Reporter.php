@@ -23,9 +23,9 @@ class Reporter
             $seats = Seat::query()
                 ->where('rider_id', $rider->id)
                 ->whereIn('status', [SeatStatus::Reserved, SeatStatus::Active])
-                ->with(['run.route', 'run.driver', 'run.vehicle', 'stop'])
+                ->with(['run.route.stops', 'run.driver', 'run.vehicle'])
                 ->get()
-                ->map(fn (Seat $seat) => "{$seat->run->route->name}, from {$seat->stop->name} at {$seat->pickupTime()}, car {$seat->run->vehicle->registration_number}, driver {$seat->run->driver->name}")
+                ->map(fn (Seat $seat) => "{$seat->run->route->name}, from {$seat->run->route->stops->firstWhere('id', $seat->boardsAt())->name} at {$seat->pickupTime()} to {$seat->run->route->stops->firstWhere('id', $seat->getsOffAt())->name}, car {$seat->run->vehicle->registration_number}, driver {$seat->run->driver->name}")
                 ->implode('. ');
 
             return ['name' => $rider->name, 'role' => 'rider', 'context' => $seats ?: 'No seat yet.'];

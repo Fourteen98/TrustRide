@@ -1,6 +1,6 @@
-# TrustRide
+# Aveo
 
-A subscription that guarantees a commuter a seat on a trotro that was going to run anyway. The rider pays her fare to the mate as she does today. TrustRide sells the certainty, and never touches fare money.
+A subscription that guarantees a commuter a seat on a trotro that was going to run anyway. The rider pays her fare to the mate as she does today. Aveo sells the certainty, and never touches fare money.
 
 This repository holds both halves of the product:
 

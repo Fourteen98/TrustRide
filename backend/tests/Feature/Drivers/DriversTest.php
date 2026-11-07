@@ -11,9 +11,12 @@ use Modules\Drivers\Actions\RecordAssessment;
 use Modules\Drivers\Actions\RecordVettingCheck;
 use Modules\Drivers\Actions\RegisterDriver;
 use Modules\Drivers\Actions\RegisterMate;
+use Modules\Drivers\Actions\SetDriverStage;
 use Modules\Drivers\Enums\AssessmentOutcome;
+use Modules\Drivers\Enums\DriverStage;
 use Modules\Drivers\Enums\DriverStatus;
 use Modules\Drivers\Enums\VettingResult;
+use Modules\Drivers\Enums\WorkType;
 use Modules\Drivers\Models\Driver;
 use Modules\Drivers\Models\Vehicle;
 use Modules\Drivers\Models\VettingItem;
@@ -34,7 +37,7 @@ it('gives a new driver and his mate mobile accounts with the right roles', funct
         ->and($driver->phone)->toBe('+233241234567')
         ->and($driver->account->hasRole('driver'))->toBeTrue()
         ->and($mate->account->hasRole('mate'))->toBeTrue()
-        ->and($driver->organisation->slug)->toBe('trustride');
+        ->and($driver->organisation->slug)->toBe('aveo');
 });
 
 it('keeps the rider role when a rider becomes a mate', function () {
@@ -138,4 +141,34 @@ it('will not pay a month that has no assessment', function () {
     $statement = $driver->statements()->create(['period' => '2026-09-01', 'commission_amount' => 30000]);
 
     expect(fn () => app(MarkStatementPaid::class)->handle($statement, staff(Staff::SUPER_ADMIN), 'ref'))->toThrow(DomainException::class, 'assessment');
+});
+
+it('starts every driver on a daily contract driving Ride, and moves him up only after an assessment', function () {
+    $driver = newDriver();
+    $operator = staff(Staff::SUPER_ADMIN);
+
+    expect($driver->fresh()->stage)->toBe(DriverStage::DailyContract)
+        ->and($driver->fresh()->does(WorkType::Ride))->toBeTrue()
+        ->and($driver->fresh()->does(WorkType::Ox))->toBeFalse();
+
+    // Not approved, then no assessment: he stays where he is.
+    expect(fn () => app(SetDriverStage::class)->handle($driver, DriverStage::Assessed, $operator))->toThrow(DomainException::class, 'approved');
+    Driver::whereKey($driver->id)->update(['status' => DriverStatus::Approved]);
+    expect(fn () => app(SetDriverStage::class)->handle($driver->fresh(), DriverStage::Partner, $operator))->toThrow(DomainException::class, 'assessment');
+
+    app(RecordAssessment::class)->handle($driver, Carbon::parse('2026-10-01'), AssessmentOutcome::Met, $operator);
+    app(SetDriverStage::class)->handle($driver->fresh(), DriverStage::Partner, $operator, 'Three good months');
+
+    $driver = $driver->fresh();
+    expect($driver->stage)->toBe(DriverStage::Partner)
+        ->and($driver->stage_note)->toBe('Three good months')
+        ->and($driver->stage_changed_by)->toBe($operator->id);
+
+    // Moving back down needs nothing.
+    app(SetDriverStage::class)->handle($driver, DriverStage::DailyContract, $operator);
+    expect($driver->fresh()->stage)->toBe(DriverStage::DailyContract);
+
+    // He can do both kinds of work.
+    $driver->update(['work_types' => [WorkType::Ride, WorkType::Ox]]);
+    expect($driver->fresh()->does(WorkType::Ox))->toBeTrue();
 });

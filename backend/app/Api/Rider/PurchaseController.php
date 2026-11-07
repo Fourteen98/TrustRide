@@ -31,6 +31,8 @@ class PurchaseController
             'network' => ['required', Rule::in(array_keys(config('payments.networks')))],
             /** The wallet to charge. Leave out to use the number she logs in with. */
             'phone' => ['nullable', 'string'],
+            /** How many people the plan is for, her included. Only above 1 on vans that add people to her plan. Leave out to keep what her seat holds. */
+            'seats' => ['nullable', 'integer', 'min:1', 'max:9'],
         ]);
 
         $plan = Plan::query()->where('is_active', true)->find($data['plan_id']) ?? throw new DomainException('That plan is no longer sold.');
@@ -41,7 +43,7 @@ class PurchaseController
 
         $phone = empty($data['phone']) ? $request->user()->phone : Phone::normalise($data['phone']);
 
-        $purchase = $start->handle($this->riderOrFail($request), $plan, $phone, $data['network']);
+        $purchase = $start->handle($this->riderOrFail($request), $plan, $phone, $data['network'], seats: $data['seats'] ?? null);
 
         return response()->json(['purchase' => new PurchaseResource($purchase->load('plan'))], 201);
     }

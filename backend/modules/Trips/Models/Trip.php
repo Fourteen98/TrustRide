@@ -3,6 +3,7 @@
 namespace Modules\Trips\Models;
 
 use App\Support\Casts\DateOnly;
+use App\Support\Maps\Distance;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,7 +20,7 @@ class Trip extends Model
 
     protected $fillable = [
         'run_id', 'date', 'status', 'started_at', 'ended_at', 'started_by_account', 'ended_by_account',
-        'started_by_staff', 'ended_by_staff', 'reached_stop_id', 'latitude', 'longitude', 'located_at',
+        'started_by_staff', 'ended_by_staff', 'reached_stop_id', 'approached_stop_id', 'latitude', 'longitude', 'located_at',
     ];
 
     protected $attributes = ['status' => 'running'];
@@ -89,6 +90,24 @@ class Trip extends Model
     }
 
     /** True if the position is recent enough to call live. */
+    /**
+     * Which way the van is facing, in degrees from north, from its last two positions far enough apart to tell.
+     * Null until it has moved. Maps turn the van icon with it.
+     */
+    public function heading(): ?float
+    {
+        $pings = LocationPing::query()->where('trip_id', $this->id)->orderByDesc('recorded_at')->limit(8)->get(['latitude', 'longitude']);
+        $last = $pings->first();
+
+        foreach ($pings->skip(1) as $earlier) {
+            if (Distance::metres($earlier->latitude, $earlier->longitude, $last->latitude, $last->longitude) >= 15) {
+                return Distance::bearing($earlier->latitude, $earlier->longitude, $last->latitude, $last->longitude);
+            }
+        }
+
+        return null;
+    }
+
     public function hasFreshPosition(): bool
     {
         return $this->located_at !== null && $this->located_at->gt(now()->subSeconds((int) config('trips.fresh_for_seconds')));

@@ -14,9 +14,11 @@ class DataDeletionRequest extends Model
 
     public const CANCELLED = 'cancelled';
 
-    protected $fillable = ['rider_id', 'status', 'requested_at', 'completed_at', 'completed_by'];
+    public const RETENTION = 'retention';
 
-    protected $attributes = ['status' => self::PENDING];
+    protected $fillable = ['rider_id', 'status', 'reason', 'requested_at', 'completed_at', 'completed_by'];
+
+    protected $attributes = ['status' => self::PENDING, 'reason' => 'requested'];
 
     protected function casts(): array
     {

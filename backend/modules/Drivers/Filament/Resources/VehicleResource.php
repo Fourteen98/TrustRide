@@ -5,6 +5,7 @@ namespace Modules\Drivers\Filament\Resources;
 use App\Support\Filament\Columns;
 use App\Support\Filament\GatedByPermission;
 use App\Support\Filament\Guarded;
+use App\Support\Filament\Options;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -17,6 +18,8 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Modules\Drivers\Actions\ApproveVehicle;
+use Modules\Drivers\Enums\ExtraSeats;
+use Modules\Drivers\Enums\VehicleOwnership;
 use Modules\Drivers\Filament\Resources\VehicleResource\Pages\ManageVehicles;
 use Modules\Drivers\Filament\VettingActions;
 use Modules\Drivers\Models\Driver;
@@ -48,6 +51,11 @@ class VehicleResource extends Resource
             TextInput::make('make')->maxLength(60)->placeholder('Toyota Hiace'),
             TextInput::make('colour')->required()->maxLength(40),
             TextInput::make('seats_total')->label('Total seats')->numeric()->required()->minValue(1)->maxValue(60),
+            Select::make('ownership')->label('Owned by')->options(Options::enum(VehicleOwnership::class))->required()->default('own')->live(),
+            TextInput::make('owner_name')->label('Partner')->maxLength(100)->placeholder('Who owns the van')
+                ->visible(fn ($get) => $get('ownership') === VehicleOwnership::Partner->value || $get('ownership') === VehicleOwnership::Partner),
+            Select::make('extra_seats')->label('Riders may hold seats for people with them')->options(Options::enum(ExtraSeats::class))->required()->default('off')
+                ->helperText('"Pay the fare": she holds seats for a day and each person pays the mate. "Added to her plan": she pays for them with her plan, every day.'),
             Textarea::make('condition_note')->label('Condition')->rows(2)->columnSpanFull(),
         ]);
     }
@@ -61,6 +69,8 @@ class VehicleResource extends Resource
                 TextColumn::make('make')->placeholder('Not given'),
                 TextColumn::make('colour'),
                 TextColumn::make('seats_total')->label('Seats'),
+                TextColumn::make('ownership')->label('Owned by')->formatStateUsing(fn (Vehicle $record) => $record->ownership === VehicleOwnership::Partner ? ($record->owner_name ?: 'Partner') : 'Aveo'),
+                TextColumn::make('extra_seats')->label('Extra seats')->formatStateUsing(fn (Vehicle $record) => $record->extra_seats->label()),
                 Columns::status('status', ['approved' => 'success', 'off_road' => 'danger', 'pending' => 'warning']),
             ])
             ->recordActions([

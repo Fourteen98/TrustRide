@@ -23,7 +23,7 @@ use Modules\Payments\Filament\Resources\PaymentResource\Pages\ManagePayments;
 use Modules\Payments\Models\Payment;
 use UnitEnum;
 
-/** Every charge TrustRide has asked for, and what became of it. */
+/** Every charge Aveo has asked for, and what became of it. */
 class PaymentResource extends Resource
 {
     use GatedByPermission;

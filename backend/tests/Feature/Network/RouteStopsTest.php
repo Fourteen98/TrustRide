@@ -14,7 +14,7 @@ it('keeps a route\'s stops in the order given', function () {
 
     expect($route->stops->pluck('name')->all())->toBe(['B', 'A', 'C'])
         ->and($route->stops[1]->pivot->minutes_from_start)->toBe(8)
-        ->and($route->organisation->slug)->toBe('trustride');
+        ->and($route->organisation->slug)->toBe('aveo');
 
     // Setting them again replaces the list.
     app(SetRouteStops::class)->handle($route, [['stop_id' => $a->id], ['stop_id' => $c->id]]);

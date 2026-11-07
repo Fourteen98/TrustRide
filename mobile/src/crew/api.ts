@@ -2,7 +2,12 @@ import { api, call } from '@/api/client';
 import type { paths } from '@/api/schema';
 
 export type CrewToday = paths['/driver/v1/today']['get']['responses'][200]['content']['application/json'];
-export type CrewRun = CrewToday['runs'][number];
+type RawRun = CrewToday['runs'][number];
+/**
+ * One run as the crew screens use it. The road and the trail are plain lists of [latitude, longitude]: the generated
+ * types call them pairs, which the replies to start, end and pickups lose on the way through `call`.
+ */
+export type CrewRun = Omit<RawRun, 'map'> & { map: Omit<RawRun['map'], 'path' | 'trail'> & { path: number[][] | null; trail: number[][] } };
 export type CrewStop = CrewRun['stops'][number];
 export type CrewRider = CrewStop['riders'][number];
 export type Ping = { latitude: number; longitude: number; accuracy: number | null; recorded_at: string };

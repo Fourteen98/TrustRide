@@ -4,6 +4,7 @@ namespace Modules\Network\Actions;
 
 use DomainException;
 use Illuminate\Support\Facades\DB;
+use Modules\Network\Jobs\TraceRoutePathJob;
 use Modules\Network\Models\Route;
 
 /** Replaces a route's stops. The order given is the travelling order. */
@@ -32,6 +33,10 @@ class SetRouteStops
                     'minutes_from_start' => (int) ($stop['minutes_from_start'] ?? 0),
                 ]);
             }
+
+            // The old road no longer joins these stops. It is traced again once this is saved.
+            $route->update(['path' => null, 'path_traced_at' => null]);
+            TraceRoutePathJob::dispatch($route->id)->afterCommit();
 
             return $route->load('stops');
         });

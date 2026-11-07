@@ -14,6 +14,8 @@ const MODULE_MAY_USE = [
     'Subscriptions' => ['Access', 'Riders', 'Network', 'Drivers', 'Payments'],
     'Trips' => ['Access', 'Subscriptions', 'Riders', 'Drivers', 'Network'],
     'Support' => ['Access', 'Riders', 'Drivers', 'Trips'],
+    // Aveo Ox, parcel delivery. Shares drivers with Ride, and nothing else.
+    'Deliveries' => ['Access', 'Drivers'],
     // These two know nothing about anyone, so they can move into another product later.
     'Payments' => [],
     'Messaging' => [],

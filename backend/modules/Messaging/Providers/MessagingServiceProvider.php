@@ -8,8 +8,10 @@ use App\Support\Contracts\SmsSender;
 use App\Support\ModuleServiceProvider;
 use App\Support\Permissions\PermissionGroupDefinition;
 use App\Support\Scope;
+use Illuminate\Console\Scheduling\Schedule;
 use Modules\Messaging\Channels\ChannelManager;
 use Modules\Messaging\Channels\ChannelSmsSender;
+use Modules\Messaging\Console\PruneLogsCommand;
 use Modules\Messaging\Listeners\RecordDomainEvent;
 use Modules\Messaging\Listeners\ScrubPersonalData;
 
@@ -29,6 +31,16 @@ class MessagingServiceProvider extends ModuleServiceProvider
 
         // Login codes and other must-send texts go out through the same SMS channel the rules use.
         $this->app->bind(SmsSender::class, ChannelSmsSender::class);
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        $this->commands([PruneLogsCommand::class]);
+
+        // Needs `php artisan schedule:work` (or cron) running.
+        $this->callAfterResolving(Schedule::class, fn (Schedule $schedule) => $schedule->command('messaging:prune')->dailyAt('03:20'));
     }
 
     protected function permissionGroups(): array

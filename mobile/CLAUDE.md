@@ -1,4 +1,4 @@
-# TrustRide mobile: rules for anyone, human or AI, changing this code
+# Aveo mobile: rules for anyone, human or AI, changing this code
 
 Read `README.md` first. The plan is `../backend/docs/build-plan.pdf`.
 
@@ -10,6 +10,6 @@ Read `README.md` first. The plan is `../backend/docs/build-plan.pdf`.
 - Colours and spacing come from `constants/theme.ts`. No hard-coded colours in screens.
 - Screens hold no business rules. If something needs deciding, the backend decides and the app shows the result.
 - Hide things with `can(permission)`. Never rely on that for security.
-- No location code or permission before release 2.
+- Location is foreground only: her blue dot on the map, and the stop nearest her in search. Background location waits for release 2.
 - Show errors as the plain sentence the backend sends in `message`.
 - Run `npm run typecheck` and `npm run lint` before finishing.

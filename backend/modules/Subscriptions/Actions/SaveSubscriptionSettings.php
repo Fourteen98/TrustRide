@@ -19,6 +19,7 @@ class SaveSubscriptionSettings
         'auto_renew_max_failures' => ['Switch automatic payment off after this many failed charges in a row', 1, 10],
         'seat_grace_days' => ['Keep her seat this many days after her plan ends', 0, 30],
         'reservation_days' => ['Hold a reserved seat this many days before she pays', 1, 30],
+        'rider_retention_days' => ['Delete a rider\'s data this many days after she stops riding (0 keeps it until she asks)', 0, 3650],
     ];
 
     /** @return array<string, int> what is in force now */

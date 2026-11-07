@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
+import { useTabBarSpace } from './tab-bar-space';
+
 /** The frame every screen sits in: safe area, padding, scrolling, and room for the keyboard. */
 type Props = {
   children: ReactNode;
@@ -17,12 +19,14 @@ type Props = {
 
 export function Screen({ children, refreshing = false, onRefresh, edges }: Props) {
   const theme = useTheme();
+  // Inside the tabs the last lines stay clear of the floating bar.
+  const tabBar = useTabBarSpace();
 
   return (
     <SafeAreaView edges={edges} style={[styles.fill, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, tabBar > 0 && { paddingBottom: tabBar + Spacing.three }]}
           keyboardShouldPersistTaps="handled"
           refreshControl={
             onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} /> : undefined

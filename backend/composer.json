@@ -1,8 +1,8 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "trustride/backend",
+    "name": "aveo/backend",
     "type": "project",
-    "description": "TrustRide backend: a modular Laravel monolith.",
+    "description": "Aveo backend: a modular Laravel monolith.",
     "keywords": [
         "laravel",
         "framework"

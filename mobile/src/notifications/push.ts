@@ -36,7 +36,7 @@ export async function getPushToken(): Promise<string | null> {
     });
 
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', { name: 'TrustRide', importance: Notifications.AndroidImportance.HIGH });
+      await Notifications.setNotificationChannelAsync('default', { name: 'Aveo', importance: Notifications.AndroidImportance.HIGH });
     }
 
     const current = await Notifications.getPermissionsAsync();

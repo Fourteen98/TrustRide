@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
 
         // The first super admin. Set ADMIN_EMAIL and ADMIN_PASSWORD in .env before seeding anywhere real.
         $admin = Staff::query()->firstOrCreate(
-            ['email' => env('ADMIN_EMAIL', 'admin@trustride.test')],
+            ['email' => env('ADMIN_EMAIL', 'admin@aveo.test')],
             [
                 'organisation_id' => Organisation::platformOwner()->id,
                 'name' => 'Admin',

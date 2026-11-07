@@ -4,7 +4,7 @@ use App\Api\Support\SupportController;
 use Illuminate\Support\Facades\Route;
 
 /*
- * Asking TrustRide for help: /api/support/v1
+ * Asking Aveo for help: /api/support/v1
  *
  * Shared by every role in the app. A rider, a driver and a mate all write in the same way.
  * There is no case id in any URL. A person has one conversation at a time, and it is her own.

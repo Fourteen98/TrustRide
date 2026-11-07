@@ -13,6 +13,7 @@ use Modules\Payments\Events\MandateFailed;
 use Modules\Payments\Events\PaymentFailed;
 use Modules\Payments\Events\PaymentSucceeded;
 use Modules\Subscriptions\Console\DailyUpkeepCommand;
+use Modules\Subscriptions\Console\RetentionCommand;
 use Modules\Subscriptions\Listeners\ApplyPickupToSubscription;
 use Modules\Subscriptions\Listeners\FollowMandate;
 use Modules\Subscriptions\Listeners\SettlePurchaseWhenPaymentSettles;
@@ -32,11 +33,12 @@ class SubscriptionsServiceProvider extends ModuleServiceProvider
     {
         parent::boot();
 
-        $this->commands([DailyUpkeepCommand::class]);
+        $this->commands([DailyUpkeepCommand::class, RetentionCommand::class]);
 
         // The module schedules its own daily job. It needs `php artisan schedule:work` (or cron) running.
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->command('subscriptions:upkeep')->dailyAt('00:10');
+            $schedule->command('subscriptions:retention')->dailyAt('02:00');
         });
     }
 
@@ -56,6 +58,7 @@ class SubscriptionsServiceProvider extends ModuleServiceProvider
                 'subscriptions.buy' => 'Buy a subscription',
                 'subscriptions.renew' => 'Renew a subscription',
                 'subscriptions.absence.give' => 'Say she won\'t ride on a day',
+                'subscriptions.guests.reserve' => 'Hold seats for people travelling with her',
             ], defaultRoles: ['rider']),
         ];
     }

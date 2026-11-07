@@ -7,8 +7,8 @@ import { getPushToken } from '@/notifications/push';
 
 import { getItem, removeItem, setItem } from './storage';
 
-const TOKEN_KEY = 'trustride.token';
-const ROLE_KEY = 'trustride.activeRole';
+const TOKEN_KEY = 'aveo.token';
+const ROLE_KEY = 'aveo.activeRole';
 
 type Status = 'loading' | 'signedOut' | 'signedIn';
 
@@ -21,7 +21,7 @@ type AuthValue = {
   verifyCode: (phone: string, code: string) => Promise<void>;
   switchRole: (name: string) => Promise<void>;
   refresh: () => Promise<void>;
-  /** Choose how TrustRide reaches her: in the app, or by SMS. */
+  /** Choose how Aveo reaches her: in the app, or by SMS. */
   preferChannel: (channel: Account['preferred_channel']) => Promise<void>;
   logout: () => Promise<void>;
   /** For hiding buttons. The server still checks every request. */

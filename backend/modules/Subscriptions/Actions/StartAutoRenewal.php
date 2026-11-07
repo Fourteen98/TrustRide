@@ -20,11 +20,11 @@ class StartAutoRenewal
 {
     public function __construct(private ActivateSubscription $activate, private RequestMandate $mandates) {}
 
-    public function handle(Rider $rider, Plan $plan, string $phone, string $network): AutoRenewal
+    public function handle(Rider $rider, Plan $plan, string $phone, string $network, ?int $seats = null): AutoRenewal
     {
-        $this->activate->ensureAllowed($rider, $plan);
+        $this->activate->ensureAllowed($rider, $plan, $seats);
 
-        return DB::transaction(function () use ($rider, $plan, $phone, $network) {
+        return DB::transaction(function () use ($rider, $plan, $phone, $network, $seats) {
             $renewal = AutoRenewal::query()->where('rider_id', $rider->id)->lockForUpdate()->first()
                 ?? AutoRenewal::query()->create(['rider_id' => $rider->id, 'plan_id' => $plan->id]);
 
@@ -33,6 +33,7 @@ class StartAutoRenewal
 
             $renewal->update([
                 'plan_id' => $plan->id,
+                'seats' => $seats,
                 'mandate_id' => $mandate->id,
                 'status' => AutoRenewalStatus::Pending,
                 'failures' => 0,

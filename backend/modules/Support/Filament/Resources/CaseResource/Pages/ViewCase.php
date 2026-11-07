@@ -64,7 +64,7 @@ class ViewCase extends ViewRecord
                 ->label(fn (SupportCase $record) => $record->is_incident ? 'Change severity' : 'Mark as incident')
                 ->icon(Heroicon::OutlinedExclamationTriangle)->color('danger')
                 ->visible(fn () => Guarded::can('support.incidents.manage'))
-                ->modalDescription('An incident is something TrustRide must be able to account for later. The operator on call is texted, and it is kept even if she asks for her data to be deleted, without her name or number.')
+                ->modalDescription('An incident is something Aveo must be able to account for later. The operator on call is texted, and it is kept even if she asks for her data to be deleted, without her name or number.')
                 ->schema([Select::make('severity')->required()->options(Options::enum(Severity::class))])
                 ->action($this->does(fn (SupportCase $record, array $data) => app(MarkIncident::class)->handle(
                     $record, Guarded::staff(), Severity::from($data['severity']),

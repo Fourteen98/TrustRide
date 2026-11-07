@@ -8,7 +8,7 @@ use Modules\Support\Models\SupportCase;
 
 /**
  * When someone's data is erased, her ordinary cases are deleted with everything said in them.
- * An incident is kept, because TrustRide may have to account for it, but her name and number
+ * An incident is kept, because Aveo may have to account for it, but her name and number
  * are taken off it. Safe to run twice.
  */
 class ScrubCases implements ShouldQueue

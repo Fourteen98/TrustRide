@@ -4,6 +4,7 @@ namespace Modules\Network\Filament\Resources;
 
 use App\Support\Filament\GatedByPermission;
 use App\Support\Filament\Guarded;
+use App\Support\Maps\GoogleRoutes;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -11,6 +12,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -19,6 +21,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
 use Modules\Network\Actions\SetRouteStops;
+use Modules\Network\Actions\TraceRoutePath;
 use Modules\Network\Filament\Resources\RouteResource\Pages\ManageRoutes;
 use Modules\Network\Models\Route;
 use Modules\Network\Models\Stop;
@@ -67,8 +70,25 @@ class RouteResource extends Resource
                 TextColumn::make('destination')->sortable(),
                 TextColumn::make('stops.name')->label('Stops')->listWithLineBreaks()->limitList(6),
                 IconColumn::make('is_active')->label('In use')->boolean(),
+                TextColumn::make('path_traced_at')->label('Road on the map')
+                    ->state(fn (Route $record) => $record->path ? 'Follows the streets' : 'Straight lines')
+                    ->color(fn (Route $record) => $record->path ? 'success' : 'gray')
+                    ->tooltip(fn (Route $record) => $record->path ? 'Traced '.$record->path_traced_at?->diffForHumans() : 'Needs a Google Maps key and a pin on every stop'),
             ])
             ->recordActions([
+                Action::make('trace')
+                    ->label('Trace the road')->icon(Heroicon::OutlinedMap)->color('gray')
+                    ->visible(fn () => Guarded::can('network.manage'))
+                    ->action(function (Route $record) {
+                        $outcome = app(TraceRoutePath::class)->handle($record);
+
+                        Notification::make()->title(match ($outcome) {
+                            'traced' => 'Done. Maps now draw this route along the streets.',
+                            'no_key' => 'There is no Google Maps key on the server yet (GOOGLE_MAPS_API_KEY).',
+                            'missing_pins' => 'Every stop on the route needs a pin first, under Stops.',
+                            default => GoogleRoutes::lastProblem() ?? 'Google did not answer. Try again in a moment.',
+                        })->color($outcome === 'traced' ? 'success' : 'warning')->send();
+                    }),
                 EditAction::make()
                     ->mutateRecordDataUsing(fn (array $data, Route $record) => $data + [
                         'stop_rows' => $record->stops->map(fn (Stop $stop) => [

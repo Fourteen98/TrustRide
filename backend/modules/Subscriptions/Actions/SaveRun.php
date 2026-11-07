@@ -44,7 +44,7 @@ class SaveRun
             throw new DomainException('Choose at least one day of the week.');
         }
 
-        if ($run->exists && $run->seats_held < $run->takenSeats()->count()) {
+        if ($run->exists && $run->seats_held < $run->seatsTaken()) {
             throw new DomainException('There are more riders on this run than that. Move some first.');
         }
 

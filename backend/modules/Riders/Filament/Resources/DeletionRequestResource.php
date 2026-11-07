@@ -62,7 +62,9 @@ class DeletionRequestResource extends Resource
                 Columns::status('status', ['pending' => 'warning', 'completed' => 'success']),
                 TextColumn::make('requested_at')->label('Asked')->since()->sortable(),
                 TextColumn::make('completed_at')->label('Deleted on')->date()->placeholder('Not yet'),
-                TextColumn::make('completer.name')->label('Deleted by')->placeholder('Nobody yet'),
+                TextColumn::make('completer.name')->label('Deleted by')
+                    ->placeholder(fn (DataDeletionRequest $record) => $record->reason === DataDeletionRequest::RETENTION ? 'The retention rule' : 'Nobody yet'),
+                TextColumn::make('reason')->label('Why')->formatStateUsing(fn (string $state) => $state === DataDeletionRequest::RETENTION ? 'Stopped riding long ago' : 'She asked'),
             ])
             ->recordActions([
                 Action::make('erase')

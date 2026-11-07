@@ -25,7 +25,7 @@ class CaseResource extends JsonResource
             'messages' => $this->entries
                 ->filter(fn (CaseEntry $entry) => $entry->type->isVisibleToPerson())
                 ->map(fn (CaseEntry $entry) => [
-                    'from' => $entry->type === EntryType::Message ? 'you' : 'trustride',
+                    'from' => $entry->type === EntryType::Message ? 'you' : 'aveo',
                     'body' => (string) $entry->body,
                     'at' => $entry->created_at->toIso8601String(),
                 ])

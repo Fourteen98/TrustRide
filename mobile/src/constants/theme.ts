@@ -1,6 +1,8 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * The app's colours, for light and dark mode. Aveo blue, Aveo gold and ink come from the logo.
+ *
+ * Gold fills (buttons, selected choices, dots) use `primary` with `onPrimary` text on them. Gold is too light to
+ * read as text on white, so gold words use `primaryText`, a deeper gold.
  */
 
 import '@/global.css';
@@ -9,13 +11,15 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
+    text: '#14324A',
     background: '#ffffff',
     backgroundElement: '#F0F0F3',
     backgroundSelected: '#E0E1E6',
     textSecondary: '#60646C',
-    primary: '#B08D3C',
-    onPrimary: '#ffffff',
+    primary: '#F2B01E',
+    onPrimary: '#14324A',
+    primaryText: '#8A6100',
+    brand: '#4DB6E8',
     danger: '#B3261E',
     border: '#D5D1C7',
   },
@@ -25,8 +29,10 @@ export const Colors = {
     backgroundElement: '#212225',
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
-    primary: '#D2AE5A',
-    onPrimary: '#1A1A1A',
+    primary: '#F2B01E',
+    onPrimary: '#14324A',
+    primaryText: '#F2B01E',
+    brand: '#4DB6E8',
     danger: '#F2B8B5',
     border: '#3A3D42',
   },

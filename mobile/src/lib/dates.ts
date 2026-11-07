@@ -66,3 +66,10 @@ export function beforeTheEnd(days: number): string {
 
   return days === 1 ? 'the day before your plan ends' : `${days} days before your plan ends`;
 }
+
+/** Today on the phone as "2026-10-22". */
+export function today(): string {
+  const d = new Date();
+
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}

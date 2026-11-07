@@ -2,6 +2,7 @@
 
 namespace Modules\Trips\Actions;
 
+use App\Support\Maps\Distance;
 use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -9,7 +10,6 @@ use Modules\Access\Models\Account;
 use Modules\Network\Models\Stop;
 use Modules\Trips\Models\LocationPing;
 use Modules\Trips\Models\Trip;
-use Modules\Trips\Support\Distance;
 use Throwable;
 
 /**
@@ -19,9 +19,12 @@ use Throwable;
  * Every usable ping is kept as history. The trip itself keeps only the newest, whichever phone
  * sent it, so the van stays on the map if one phone dies. Passing within reach of a stop
  * marks that stop as reached. The van never goes backwards along the route.
+ * Coming near the next stop tells the people getting on and off there.
  */
 class RecordPings
 {
+    public function __construct(private AnnounceNextStop $announce) {}
+
     /**
      * @param  list<array{latitude: float|int|string, longitude: float|int|string, accuracy?: float|int|string|null, recorded_at: string}>  $pings
      * @return int how many were kept
@@ -86,6 +89,11 @@ class RecordPings
             }
 
             $trip->update($changes);
+
+            // Only a fresh position: a batch saved while offline says where the van was, not where it is.
+            if ($newest['recorded_at']->gte(now()->subMinutes(2))) {
+                $this->announce->handle($trip, (float) $newest['latitude'], (float) $newest['longitude']);
+            }
 
             return $usable->count();
         });

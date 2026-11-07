@@ -8,7 +8,7 @@ use Illuminate\Validation\Rule;
 use Modules\Access\Actions\SetPreferredChannel;
 use Modules\Messaging\Actions\RegisterPushDevice;
 
-/** How TrustRide reaches the person logged in: app notifications on this phone, and which way she prefers. */
+/** How Aveo reaches the person logged in: app notifications on this phone, and which way she prefers. */
 class NotificationController
 {
     /**

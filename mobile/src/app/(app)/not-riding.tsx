@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -28,7 +28,9 @@ export default function NotRidingScreen() {
   const check = useAction();
   const confirm = useAction();
 
-  const [date, setDate] = useState<string | null>(null);
+  // "I won't ride today" from the ride menu opens this with today already chosen.
+  const { date: asked } = useLocalSearchParams<{ date?: string }>();
+  const [date, setDate] = useState<string | null>(asked ?? null);
   const [preview, setPreview] = useState<NoticePreview | null>(null);
 
   function choose(day: string) {
@@ -38,6 +40,12 @@ export default function NotRidingScreen() {
 
     return check.run(async () => setPreview(await riderApi.previewNotice(day)));
   }
+
+  useEffect(() => {
+    if (asked) {
+      void check.run(async () => setPreview(await riderApi.previewNotice(asked)));
+    }
+  }, [asked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Screen edges={['bottom']}>

@@ -51,13 +51,13 @@ return [
         /*
          * Description rendered on the home page of the API documentation (`/docs/api`).
          */
-        'description' => 'The API behind the TrustRide mobile app. Riders, drivers and mates use one app and one login. '
+        'description' => 'The API behind the Aveo mobile app. Riders, drivers and mates use one app and one login. '
             .'What an account can call depends on its permissions. Log in with POST /api/auth/code then POST /api/auth/verify, '
             .'and send the token as "Authorization: Bearer <token>".',
     ],
 
     'ui' => [
-        'title' => 'TrustRide API',
+        'title' => 'Aveo API',
     ],
 
     /*

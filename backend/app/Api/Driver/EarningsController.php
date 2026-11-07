@@ -14,8 +14,8 @@ class EarningsController
     /**
      * The driver's commission and assessments.
      *
-     * What TrustRide pays him each month, and the last twelve months: how he was assessed and whether
-     * he has been paid. This is the commission only. Fares never pass through TrustRide.
+     * What Aveo pays him each month, and the last twelve months: how he was assessed and whether
+     * he has been paid. This is the commission only. Fares never pass through Aveo.
      */
     public function show(Request $request): JsonResponse
     {
